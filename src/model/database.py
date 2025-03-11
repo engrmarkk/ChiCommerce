@@ -30,7 +30,7 @@ class User(db.Model):
     last_name = db.Column(db.String(50), nullable=False)
     password = db.Column(db.String(100), nullable=False)
     phone_number = db.Column(db.Text, nullable=False)
-    profile_pic = db.Column(db.Text, nullable=False)
+    # profile_pic = db.Column(db.Text, nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
@@ -49,7 +49,7 @@ class User(db.Model):
             "first_name": self.first_name,
             "last_name": self.last_name,
             "password": self.password,
-            "profile_pic": self.profile_pic,
+            # "profile_pic": self.profile_pic,
             "is_admin": self.is_admin,
             "is_active": self.is_active,
             "created_at": self.created_at,

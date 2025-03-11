@@ -83,7 +83,7 @@ def register():
         password = request.json.get('password')
         confirm_password = request.json.get('confirm_password')
         phone_number = request.json.get('phone_number')
-        profile_pic = request.json.get('profile_pic')
+        # profile_pic = request.json.get('profile_pic')
         
         # Validate password
         password_error = validate_password(password)
@@ -104,16 +104,16 @@ def register():
             return jsonify({"message": "User already exists"}), http_status_codes.HTTP_400_BAD_REQUEST
 
             # Upload profile picture to Cloudinary
-        cloudinary_url = None
-        if profile_pic:
-            try:
-                upload_result = cloudinary.uploader.upload(profile_pic)
-                cloudinary_url = upload_result.get("secure_url")
-            except Exception as e:
-                return (
-                    jsonify({"message": f"Error uploading image: {str(e)}"}),
-                    http_status_codes.HTTP_400_BAD_REQUEST,
-                )
+        # cloudinary_url = None
+        # if profile_pic:
+        #     try:
+        #         upload_result = cloudinary.uploader.upload(profile_pic)
+        #         cloudinary_url = upload_result.get("secure_url")
+        #     except Exception as e:
+        #         return (
+        #             jsonify({"message": f"Error uploading image: {str(e)}"}),
+        #             http_status_codes.HTTP_400_BAD_REQUEST,
+        #         )
 
         # Hash password
         hashed_password = generate_password_hash(password, method="pbkdf2:sha256")
@@ -130,7 +130,7 @@ def register():
             email=email.lower(),
             password=hashed_password,
             phone_number=phone_number,
-            profile_pic=cloudinary_url,
+            # profile_pic=cloudinary_url,
             verification_token=verification_token,
         )
         db.session.add(user)
@@ -225,3 +225,10 @@ def register():
         logger.error(f"Error during registration: {str(e)}")
         logger.error(traceback.format_exc())
         return jsonify({"message": "Error registering user"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+# @auth.get("/verify/<token>")
+# def verify_email(token):
+#     try:
+        
