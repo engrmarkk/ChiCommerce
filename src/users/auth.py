@@ -15,6 +15,7 @@ from src.constants import http_status_codes
 from flask_mail import Message, Mail  # Import the mail instance here
 from dotenv import load_dotenv
 from datetime import timedelta
+from urllib.parse import unquote
 
 
 logging.basicConfig(level=logging.INFO)
@@ -139,7 +140,7 @@ def register():
 
     # Send Verification Email
         verification_url = (
-        f"https://service-nest.onrender.com/auth/verify/{verification_token}"
+        f"https://chi-icon.onrender.com/auth/verify/{verification_token}"
     )
         try:
             msg = Message(
@@ -233,7 +234,6 @@ def register():
     
     
     
-    
 @auth.get("/verify/<token>")
 def verify_email(token):
     try:
@@ -243,6 +243,10 @@ def verify_email(token):
         
         s = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
         print(f"Received token: {token}")  # Debug
+        
+        # Decode the token from the URL if necessary
+        token = unquote(token)  # URL decode the token if it was URL-encoded
+        
         email = s.loads(token, salt="email-verification-salt", max_age=3600)  # 24 hours
         
         user = User.query.filter_by(email=email).first()
@@ -253,6 +257,9 @@ def verify_email(token):
             return redirect("https://servicenest.netlify.app/login")
         
         # Validate the token against the database
+        print(f"Stored token: {user.verification_token}")  # Debug
+        print(f"Received token: {token}")  # Debug
+        
         if user.verification_token != token:
             print("Invalid or expired token.")
             return (
@@ -261,7 +268,6 @@ def verify_email(token):
             )
         
         print(f"User {user.email} verification status: {user.email_verified}")
-        print(f"Stored token: {user.verification_token}")  # Debug
         
         user.email_verified = True
         user.verification_token = None
@@ -274,9 +280,6 @@ def verify_email(token):
             recipients=[email],
         )
         msg.html = f"""
-        
-        
-        
         <html>
         <head>
             <style>
@@ -351,13 +354,9 @@ def verify_email(token):
         <body>
             <div class="container">
                 <img src="https://res.cloudinary.com/de8pdqpun/image/upload/v1737536089/logo_new_upsyih.svg" alt="Company Logo" class="image_2"> 
-                <h2>Welcome to Service Nest {user.first_name} {user.last_name},</h2>
-                <p>You've just taken the first step towards finding your perfect service. To kick things off, we'd like to show you around. Here are a few important areas on the site:</p>
+                <h2>Welcome to Chi_Icon {user.first_name} {user.last_name},</h2>
+                <p>You've just taken the first step towards finding your perfect product of your choice. To kick things off, we'd like to show you around. Here are a few important areas on the site:</p>
                 <div class="container_2">
-                <h2>Your Profile</h2>
-                    <img src="https://res.cloudinary.com/de8pdqpun/image/upload/v1736159594/pro1_ktjrwt.png" alt="Company Logo">
-                    <p class="text">Clients receive your profile when you apply for jobs. Put your best foot forward by completing your profile. Showcase your skills, education level, experience or the type of service you are offering. Don’t miss out on the opportunity to outshine your competition.</p>
-                </div>
                 <p>Thank you!</p>
             </div>
                 </body>
@@ -396,3 +395,252 @@ def verify_email(token):
             jsonify({"message": "An unexpected error occurred."}),
             http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+        
+        
+        
+        
+        
+        
+        
+# Resend Email Verification
+@auth.post("/resend-verification")
+def resend_verification():
+    
+    mail = current_app.extensions.get('mail')
+    if not mail:
+            raise RuntimeError("Flask-Mail not initialized")
+    
+    
+    email = request.json.get("email")
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        return (
+            jsonify({"message": "User not found."}),
+            http_status_codes.HTTP_404_NOT_FOUND,
+        )
+
+    if user.email_verified:
+        return (
+            jsonify({"message": "Email is already verified."}),
+            http_status_codes.HTTP_400_BAD_REQUEST,
+        )
+
+    # Generate a new token
+    s = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
+    new_token = s.dumps(email, salt="email-verification-salt")
+
+    # Update the user's verification token
+    user.verification_token = new_token
+    db.session.commit()
+
+    verification_url = f"https://chi-icon.onrender.com/auth/verify/{new_token}"
+    try:
+        msg = Message(
+            "Verify Your Email",
+            sender=os.getenv("MAIL_USERNAME"),
+            recipients=[email],
+        )
+        msg.body = f"Hi {user.first_name},\n\nPlease verify your email by clicking the link below:\n{verification_url}\n\nThank you!"
+        mail.send(msg)
+    except Exception as e:
+        return (
+            jsonify({"message": f"Error sending email: {str(e)}"}),
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return (
+        jsonify({"message": "Verification email resent."}),
+        http_status_codes.HTTP_200_OK,
+    )
+
+
+
+
+
+
+@auth.post("/login")
+def login():
+    email = request.json.get("email", "").lower()
+    password = request.json.get("password", "")
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user or not check_password_hash(user.password, password):
+        return (
+            jsonify({"message": "Invalid email or password"}),
+            http_status_codes.HTTP_401_UNAUTHORIZED,
+        )
+
+    if not user.email_verified:
+        return (
+            jsonify({"message": "Email is not verified"}),
+            http_status_codes.HTTP_401_UNAUTHORIZED,
+        )
+
+    access_token = create_access_token(identity=user.id, fresh=True)
+    refresh_token = create_refresh_token(identity=user.id)
+
+    return (
+        jsonify(
+            {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "email": user.email,
+                },
+            }
+        ),
+        http_status_codes.HTTP_200_OK,
+    )
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+# Generate OTP for password reset
+def generate_otp():
+    return str(random.randint(1000, 9999))
+
+
+# Send email with OTP
+def send_otp(email, otp):
+    
+    mail = current_app.extensions.get('mail')
+    if not mail:
+            raise RuntimeError("Flask-Mail not initialized")
+    
+    subject = "Password Reset OTP"
+    message = f"Your OTP for password reset is: {otp}"
+    msg = Message(subject=subject, recipients=[email], body=message)
+    try:
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
+
+
+
+def otp_reset_successful(email, otp):
+    mail = current_app.extensions.get('mail')
+    if not mail:
+        raise RuntimeError('Flask-Mail not initialized')
+    
+    subject = "Password Reset Successful"
+    message = f"Your password has been reset successfully"
+    msg = Message(subject=subject, recipients=[email], body=message)
+    try:
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
+
+
+
+
+@auth.post("/request_reset_password")
+def request_reset_password():
+    mail = current_app.extensions.get('mail')
+    if not mail:
+            raise RuntimeError("Flask-Mail not initialized")
+    
+    
+    email = request.json.get("email").lower()
+
+    if not email:
+        return (
+            jsonify({"message": "Email is required"}),
+            http_status_codes.HTTP_400_BAD_REQUEST,
+        )
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        return (
+            jsonify({"message": "User not found"}),
+            http_status_codes.HTTP_404_NOT_FOUND,
+        )
+
+    otp = generate_otp()
+
+    user.reset_otp = otp
+    user.otp_expiration = datetime.datetime.utcnow() + datetime.timedelta(
+        minutes=10
+    )  # OTP valid for 10 minutes
+    db.session.commit()
+
+    if send_otp(email, otp):
+        return (
+            jsonify({"message": "Reset OTP sent to your email"}),
+            http_status_codes.HTTP_200_OK,
+        )
+    else:
+        return (
+            jsonify({"message": "Failed to send OTP"}),
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@auth.post("/reset_password")
+def reset_password():
+    mail = current_app.extensions.get('mail')
+    if not mail:
+            raise RuntimeError("Flask-Mail not initialized")
+    
+    
+    email = request.json.get("email").lower()
+    otp = request.json.get("otp")
+    new_password = request.json.get("new_password")
+
+    if not email or not otp or not new_password:
+        return (
+            jsonify({"message": "Email, OTP, and new password are required"}),
+            http_status_codes.HTTP_400_BAD_REQUEST,
+        )
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        return (
+            jsonify({"message": "User not found"}),
+            http_status_codes.HTTP_404_NOT_FOUND,
+        )
+
+    if user.reset_otp != otp:
+        return (
+            jsonify({"message": "Invalid OTP"}),
+            http_status_codes.HTTP_400_BAD_REQUEST,
+        )
+
+    if user.otp_expiration < datetime.datetime.utcnow():
+        return (
+            jsonify({"message": "OTP has expired"}),
+            http_status_codes.HTTP_400_BAD_REQUEST,
+        )
+
+    user.password = generate_password_hash(new_password, method="pbkdf2:sha256")
+    user.reset_otp = None
+    user.otp_expiration = None
+    db.session.commit()
+    
+    if otp_reset_successful(email, otp):
+        return (
+        jsonify({"message": "Password reset successfully"}),
+        http_status_codes.HTTP_200_OK,
+    )
+
+
+    
