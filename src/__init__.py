@@ -5,6 +5,7 @@ from src.constants import http_status_codes
 from src.model.database import db, User  # Ensure this import is correct
 from flask_migrate import Migrate
 from src.users.auth import auth
+from src.admin.admin import admin
 from src.users.cloud_nary import cloudnary
 from dotenv import load_dotenv
 from datetime import timedelta
@@ -64,6 +65,7 @@ def create_app(test_config=None):
     
     # Register Blueprints
     app.register_blueprint(auth)  
+    app.register_blueprint(admin)  
     app.register_blueprint(cloudnary)
     
     return app

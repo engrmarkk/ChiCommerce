@@ -47,10 +47,16 @@ class User(db.Model):
             "username": self.username,
             "first_name": self.first_name,
             "last_name": self.last_name,
-            "password": self.password,
+            # "password": self.password,
             "is_admin": self.is_admin,
             "is_active": self.is_active,
             "created_at": self.created_at,
             "email_verified": self.email_verified,
             "email": self.email
         }
+        
+        
+        
+        
+
+

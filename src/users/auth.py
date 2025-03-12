@@ -105,18 +105,6 @@ def register():
         if existing_user:
             return jsonify({"message": "User already exists"}), http_status_codes.HTTP_400_BAD_REQUEST
 
-            # Upload profile picture to Cloudinary
-        # cloudinary_url = None
-        # if profile_pic:
-        #     try:
-        #         upload_result = cloudinary.uploader.upload(profile_pic)
-        #         cloudinary_url = upload_result.get("secure_url")
-        #     except Exception as e:
-        #         return (
-        #             jsonify({"message": f"Error uploading image: {str(e)}"}),
-        #             http_status_codes.HTTP_400_BAD_REQUEST,
-        #         )
-
         # Hash password
         hashed_password = generate_password_hash(password, method="pbkdf2:sha256")
 
