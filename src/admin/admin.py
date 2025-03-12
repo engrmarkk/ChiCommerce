@@ -198,7 +198,7 @@ def register_admin():
     
 
 # Send Email Verification
-@admin.get("/verify_admin/<str:token>")
+@admin.get("/verify_admin/<string:token>")
 def verify_email(token):
     """Verify email using the token."""
     try:
