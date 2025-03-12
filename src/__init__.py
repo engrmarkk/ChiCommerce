@@ -8,7 +8,7 @@ from src.users.auth import auth
 from src.users.cloud_nary import cloudnary
 from dotenv import load_dotenv
 from datetime import timedelta
-from src.extentions.extensions import jwt, mail  # Ensure this import is correct
+from src.extentions.extensions import jwt, mail, cors  # Ensure this import is correct
 
 load_dotenv()
 
@@ -52,6 +52,7 @@ def create_app(test_config=None):
     # Initialize extensions
     db.init_app(app)
     migrate = Migrate(app, db)
+    cors.init_app(app, resources={r"/*": {"origins": "*"}})
     jwt.init_app(app)
     mail.init_app(app)  # Initialize Flask-Mail
     

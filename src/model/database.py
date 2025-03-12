@@ -28,7 +28,7 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
-    password = db.Column(db.String(100), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     phone_number = db.Column(db.Text, nullable=False)
     # profile_pic = db.Column(db.Text, nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
@@ -38,7 +38,7 @@ class User(db.Model):
     email_verified = db.Column(db.Boolean, nullable=False, default=False)
     reset_otp = db.Column(db.String(10), nullable=True)
     otp_expiration = db.Column(db.DateTime, nullable=True)
-    verification_token = db.Column(db.String(255), nullable=False)
+    verification_token = db.Column(db.String(255), nullable=True)
     email = db.Column(db.String(50), unique=True, nullable=False)
     
     
