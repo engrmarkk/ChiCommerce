@@ -182,7 +182,7 @@ def register_admin():
 
             mail.send(msg)
             logger.info("Verification email sent successfully")
-            return jsonify({"message": "User registered successfully. Please verify your email.", "user": new_user.to_dict()}), http_status_codes.HTTP_201_CREATED
+            return jsonify({"message": "Admin registered successfully. Please verify your email.", "admin": new_user.to_dict()}), http_status_codes.HTTP_201_CREATED
 
         except Exception as e:
             logger.error(f"Error sending email: {str(e)}")
