@@ -105,16 +105,15 @@ def register_admin():
         logger.info(f"New admin registered: {email}")
 
         # Generate verification URL with URL-encoded token
-        verification_url = f"https://chi-icon.onrender.com/admin/verify_admin/{quote(verification_token)}"
-        logger.info(f"Verification URL: {verification_url}")
-
-    # Send Verification Email
-        msg = Message(
-                "Verify Your Email",
-                sender=os.getenv("MAIL_USERNAME"),
-                recipients=[email]
+        # Send Verification Email
+        verification_url = (
+        f"https://chi-icon.onrender.com/admin/verify_admin/{verification_token}"
+    )
+        try:
+            msg = Message(
+                "Verify Your Email", sender=os.getenv("MAIL_USERNAME"), recipients=[email]
             )
-        msg.html = f"""
+            msg.html = f"""
             <html>
             <head>
                 <style>
@@ -123,10 +122,10 @@ def register_admin():
                         background-color: #f4f4f4;
                         margin: 0;
                         padding: 20px;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        height: 100vh;
+                        display: flex; /* Use flexbox on body */
+                        justify-content: center; /* Center content horizontally */
+                        align-items: center; /* Center content vertically */
+                        height: 100vh; /* Full viewport height */
                     }}
                     .container {{
                         background-color: #ffffff;
@@ -134,14 +133,14 @@ def register_admin():
                         border-radius: 8px;
                         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
                         max-width: 600px;
-                        width: 100%;
-                        text-align: center;
+                        width: 100%; /* Ensure it doesn't exceed the viewport */
+                        text-align: center;  /* Center text */
                     }}
                     img {{
                         width: 250px;
                         height: auto;
                         display: block;
-                        margin: auto;
+                        margin: auto
                     }}
                     h2 {{
                         color: gray;
@@ -160,6 +159,7 @@ def register_admin():
                         font-size: 16px;
                         margin: 20px auto;
                         cursor: pointer;
+                        padding: 10px 20px;
                         transition: background-color 0.3s;
                     }}
                     .button:hover {{
@@ -176,20 +176,25 @@ def register_admin():
                     <p>Thank you!</p>
                 </div>
             </body>
-            </html>
-            """
+        </html>
+        """
 
-        mail.send(msg)
-        logger.info("Verification email sent successfully")
-        return jsonify({
-                "message": "Admin registered successfully. Please verify your email.",
-                "admin": new_user.to_dict()
-            }), http_status_codes.HTTP_201_CREATED
+            mail.send(msg)
+            logger.info("Verification email sent successfully")
+            return jsonify({"message": "User registered successfully. Please verify your email.", "user": user.to_dict()}), http_status_codes.HTTP_201_CREATED
+
+        except Exception as e:
+            logger.error(f"Error sending email: {str(e)}")
+            return (
+                jsonify({"message": f"Error sending email: {str(e)}"}),
+                http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     except Exception as e:
-            logger.error(f"Error sending email: {str(e)}")
-            db.session.rollback()  # Roll back if email fails
-            return jsonify({"message": f"Error sending email: {str(e)}"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+        logger.error(f"Error during registration: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({"message": "Error registering user"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
 
 
     
