@@ -75,6 +75,8 @@ class Products(db.Model):
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Float, nullable=False)
     description = db.Column(db.Text, nullable=True)
+    color = db.Column(db.String(50), nullable=False)
+    model = db.Column(db.String(50), nullable=False)
     out_of_stock = db.Column(db.Boolean, default=False)
     category_id = db.Column(db.String(50), db.ForeignKey('category.id'), nullable=False)
     specification_1 = db.Column(db.String(100), nullable=True)

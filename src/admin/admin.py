@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from datetime import timedelta
 from urllib.parse import quote 
 from urllib.parse import unquote
+from functools import wraps
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +46,36 @@ def validate_password(password):
     if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
         return "Password must contain at least one special character."
     return None
+
+
+
+
+
+
+
+
+def admin_required():
+    def wrapper(fn):
+        @wraps(fn)
+        @jwt_required() 
+        def decorator(*args, **kwargs):
+            user_id = get_jwt_identity()
+            
+            user = User.query.get(user_id)
+            
+            if not user:
+                return jsonify({"message": "User not found"}), http_status_codes.HTTP_404_NOT_FOUND
+            if not user.is_admin:
+                return jsonify({"message": "Admin access required"}), http_status_codes.HTTP_403_FORBIDDEN
+            
+            # If checks pass, proceed to the endpoint
+            return fn(*args, **kwargs)
+        return decorator
+    return wrapper
+
+
+
+
 
 
 
@@ -324,7 +355,7 @@ def login():
     
 # Add new category
 @admin.post("/add_category")
-@jwt_required()
+@admin_required()
 def add_category():
     data = request.json
     name = data.get("name")
@@ -346,3 +377,188 @@ def add_category():
         "name": new_category.name
     }})
     
+    
+    
+
+
+# Delete category
+@admin.delete("/delete_category/<string:id>")
+@admin_required()
+def delete_category(id):
+    category = Category.query.get(id)
+    
+    if not category:
+        return jsonify({"message": "Category not found"}), http_status_codes.HTTP_404_NOT_FOUND
+    
+    try:
+        db.session.delete(category)
+        db.session.commit()
+        
+        return jsonify({"message": "Category deleted successfully"}), http_status_codes.HTTP_200_OK
+    
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        logger.error(f"Error deleting category: {str(e)}")
+        return jsonify({"message": "Error deleting category"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+    
+
+
+
+
+# Update Categories
+@admin.put("/update_category/<string:id>")
+@admin_required()
+def update_category(id):
+    
+    category = Category.query.get(id)
+    
+    if not category:
+        return jsonify({"message": "Category not found"}), http_status_codes.HTTP_404_NOT_FOUND
+        
+    data = request.json
+    new_cat = data.get("name")
+    if not new_cat:
+        return jsonify({"message": "Category name is required"}), http_status_codes.HTTP_400_BAD_REQUEST
+    
+    existing_category = Category.query.filter(Category.name == new_cat, Category.id != id).first()
+    if existing_category:
+        return jsonify({"message": "This category name already exists"}), http_status_codes.HTTP_409_CONFLICT
+    
+    try:
+        # Update the category name
+        category.name = new_cat
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Category updated successfully",
+            "category": {
+                "id": category.id,
+                "name": category.name
+            }
+        }), http_status_codes.HTTP_200_OK
+    
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        logger.error(f"Error updating category: {str(e)}")
+        return jsonify({"message": "Error updating category"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+    
+    
+    
+@admin.post("/add_product")
+@admin_required()
+def add_product():
+    try:
+        data = request.json
+        
+        name = data.get('name')
+        price = data.get('price')
+        color = data.get('color')
+        model = data.get('model')
+        category_id = data.get('category_id')
+        description=data.get('description'),
+        
+        
+        if not all([name, price, color, model, category_id]):
+            return jsonify({'error': 'Missing required fields'}), 400
+            
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({'error': 'Invalid category_id'}), 400
+            
+        new_product = Products(
+            name=name,
+            price=float(price),
+            color=color,
+            model=model,
+            category_id=category_id,
+            description=description,
+            out_of_stock=data.get('out_of_stock', False),
+            specification_1=data.get('specification_1'),
+            specification_2=data.get('specification_2'),
+            specification_4=data.get('specification_4'),
+            specification_5=data.get('specification_5'),
+            specification_6=data.get('specification_6'),
+            specification_7=data.get('specification_7'),
+            specification_8=data.get('specification_8'),
+            specification_9=data.get('specification_9'),
+            specification_10=data.get('specification_10'),
+            specification_11=data.get('specification_11'),
+            specification_12=data.get('specification_12'),
+            specification_13=data.get('specification_13'),
+            specification_14=data.get('specification_14'),
+            specification_15=data.get('specification_15')
+        )
+        
+        db.session.add(new_product)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Product added successfully',
+            'product': new_product.to_dict()
+        }), 201
+        
+    except ValueError:
+        return jsonify({'error': 'Invalid price format'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+    
+    
+    
+    
+@admin.get("/single_gadget/<string:id>")
+@admin_required()
+def single_gadgets(id):
+    try:
+        # Query the product by its ID
+        gadget = Products.query.get(id)
+        
+        # Check if the product exists
+        if not gadget:
+            return jsonify({'error': 'Gadget not found'}), 404
+            
+        # Return the product details
+        return jsonify({
+            'message': 'Gadget retrieved successfully',
+            'gadget': gadget.to_dict()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+    
+    
+
+
+
+@admin.get("/all_gadgets/<string:id>")
+@admin_required()
+def all_gadgets(id):
+    try:
+        category = Category.query.get(id)
+        if not category:
+            return jsonify({'error': 'Category not found'}), 404
+            
+        gadgets = Products.query.filter_by(category_id=id).all()
+        
+        if not gadgets:
+            return jsonify({
+                'message': 'No gadgets found in this category',
+                'gadgets': []
+            }), 200
+            
+        gadgets_list = [gadget.to_dict() for gadget in gadgets]
+        
+        return jsonify({
+            'message': 'Gadgets retrieved successfully',
+            'gadgets': gadgets_list
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
