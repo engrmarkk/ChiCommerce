@@ -460,22 +460,42 @@ def add_product():
         price = data.get('price')
         color = data.get('color')
         model = data.get('model')
+        image = data.get('image')
         category_id = data.get('category_id')
         description=data.get('description'),
         
         
-        if not all([name, price, color, model, category_id]):
-            return jsonify({'error': 'Missing required fields'}), 400
+        existing_product = Products.query.filter_by(name=name).first()
+        if existing_product:
+            return jsonify({'error': 'Product already exists'}), http_status_codes.HTTP_409_CONFLICT
+        
+        
+        
+        if not all([name, price, color, model, category_id, image, description]):
+            return jsonify({'error': 'Missing required fields'}), http_status_codes.HTTP_400_BAD_REQUEST
             
         category = Category.query.get(category_id)
         if not category:
-            return jsonify({'error': 'Invalid category_id'}), 400
+            return jsonify({'error': 'Invalid category_id'}), http_status_codes.HTTP_400_BAD_REQUEST
+        
+        
+        # Upload profile picture to Cloudinary
+        cloudinary_url = None
+        if image:
+            try:
+                upload_result = cloudinary.uploader.upload(image)
+                cloudinary_url = upload_result.get('secure_url')
+            except Exception as e:
+                return jsonify({"message": f"Error uploading image: {str(e)}"}), http_status_codes.HTTP_400_BAD_REQUEST
+            
+        
             
         new_product = Products(
             name=name,
             price=float(price),
             color=color,
             model=model,
+            image=cloudinary_url,
             category_id=category_id,
             description=description,
             out_of_stock=data.get('out_of_stock', False),
@@ -562,3 +582,29 @@ def all_gadgets(id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+    
+    
+    
+# # Serach with color
+# @admin.get("/search_by_color/<string:color>")
+# @admin_required()
+# def search_by_color(color):
+#     try:
+#         gadgets = Products.query.filter_by(color=color).all()
+        
+#         if not gadgets:
+#             return jsonify({
+#                 'message': 'No gadgets found with this color',
+#                 'gadgets': []
+#             }), 200
+            
+#         gadgets_list = [gadget.to_dict() for gadget in gadgets]
+        
+#         return jsonify({
+#             'message': 'Gadgets retrieved successfully',
+#             'gadgets': gadgets_list
+#         }), 200
+        
+#     except Exception as e:
+#         return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR

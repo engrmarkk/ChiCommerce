@@ -79,8 +79,10 @@ class Products(db.Model):
     model = db.Column(db.String(50), nullable=False)
     out_of_stock = db.Column(db.Boolean, default=False)
     category_id = db.Column(db.String(50), db.ForeignKey('category.id'), nullable=False)
+    image = db.Column(db.String(255), nullable=False)
     specification_1 = db.Column(db.String(100), nullable=True)
     specification_2 = db.Column(db.String(100), nullable=True)
+    specification_3 = db.Column(db.String(100), nullable=True)
     specification_4 = db.Column(db.String(100), nullable=True)
     specification_5 = db.Column(db.String(100), nullable=True)
     specification_6 = db.Column(db.String(100), nullable=True)
@@ -102,10 +104,11 @@ class Products(db.Model):
             "name": self.name,
             "description": self.description,
             "price": self.price,
-            "out_of_stock": self.out_of_stock,
             "category_id": self.category_id,
+            "image": self.image,
             "specification_1": self.specification_1,
             "specification_2": self.specification_2,
+            "specification_3": self.specification_3,
             "specification_4": self.specification_4,
             "specification_5": self.specification_5,
             "specification_6": self.specification_6,
