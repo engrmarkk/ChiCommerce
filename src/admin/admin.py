@@ -12,7 +12,7 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature
 import cloudinary.uploader
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from src.model.database import db, User
+from src.model.database import db, User, Category, Products
 from src.constants import http_status_codes
 from flask_mail import Message, Mail  # Import the mail instance here
 from dotenv import load_dotenv
@@ -299,7 +299,7 @@ def login():
     email = request.json.get("email", "")
     password = request.json.get("password", "")
 
-    user = Users.query.filter_by(email=email).first()
+    user = User.query.filter_by(email=email).first()
 
     if not user or not check_password_hash(user.password, password):
         return jsonify({"message": "Invalid email or password"}), http_status_codes.HTTP_401_UNAUTHORIZED
@@ -315,9 +315,34 @@ def login():
             "first_name": user.first_name,
             "last_name": user.last_name,            
             "email": user.email,
-            "profile_pic": user.profile_pic,
             "is_admin": user.is_admin
         }
     }), http_status_codes.HTTP_200_OK
     
+    
+    
+    
+# Add new category
+@admin.post("/add_category")
+@jwt_required()
+def add_category():
+    data = request.json
+    name = data.get("name")
+    
+    if not name:
+        return jsonify({"message": "Category name is required"}), http_status_codes.HTTP_400_BAD_REQUEST
+    
+    existing_name = Category.query.filter_by(name=name).first()
+    
+    if existing_name:
+        return jsonify({"message": "This category name already exists."}), http_status_codes.HTTP_409_CONFLICT
+    
+    new_category = Category(name=name)
+    db.session.add(new_category)
+    db.session.commit()
+    
+    return jsonify({"message": "New category added successfully", "category": {
+        "id": new_category.id,
+        "name": new_category.name
+    }})
     
