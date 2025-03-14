@@ -574,6 +574,28 @@ def single_gadgets(id):
     
     
     
+    
+
+# Get all categories
+@admin.get("/all_categories")
+@admin_required()
+def get_all_categories():
+    try:
+        if not current_user.is_admin:
+            return jsonify({'error': 'You are not an admin.'}), http_status_codes.HTTP_401_UNAUTHORIZED
+        
+        categories = Category.query.all()
+        return jsonify({
+            'message': 'Categories retrieved successfully',
+            'categories': [category.to_dict() for category in categories]
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+    
 
 
 
