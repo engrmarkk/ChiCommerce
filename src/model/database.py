@@ -104,6 +104,8 @@ class Products(db.Model):
             "name": self.name,
             "description": self.description,
             "price": self.price,
+            "model": self.model,
+            "color": self.color,
             "category_id": self.category_id,
             "image": self.image,
             "specification_1": self.specification_1,
