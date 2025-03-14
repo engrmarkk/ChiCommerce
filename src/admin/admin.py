@@ -109,6 +109,26 @@ def register_admin():
     existing_user = User.query.filter_by(email=email).first()
     if existing_user:
         return jsonify({"message": "Email already in use"}), http_status_codes.HTTP_409_CONFLICT
+    
+    if username:
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            return jsonify({"message": "Username already in use"}), http_status_codes.HTTP_409_CONFLICT
+        
+    if first_name:
+        existing_user = User.query.filter_by(first_name=first_name).first()
+        if existing_user:
+            return jsonify({"message": "First name already in use"}), http_status_codes.HTTP_409_CONFLICT
+
+    if last_name:
+        existing_user = User.query.filter_by(last_name=last_name).first()
+        if existing_user:
+            return jsonify({"message": "Last name already in use"}), http_status_codes.HTTP_409_CONFLICT
+        
+    if phone_number:
+        existing_user = User.query.filter_by(phone_number=phone_number).first()
+        if existing_user:
+            return jsonify({"message": "Phone number already in use"}), http_status_codes.HTTP_409_CONFLICT
 
     # Hash password
     hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
@@ -586,25 +606,3 @@ def all_gadgets(id):
     
     
     
-# # Serach with color
-# @admin.get("/search_by_color/<string:color>")
-# @admin_required()
-# def search_by_color(color):
-#     try:
-#         gadgets = Products.query.filter_by(color=color).all()
-        
-#         if not gadgets:
-#             return jsonify({
-#                 'message': 'No gadgets found with this color',
-#                 'gadgets': []
-#             }), 200
-            
-#         gadgets_list = [gadget.to_dict() for gadget in gadgets]
-        
-#         return jsonify({
-#             'message': 'Gadgets retrieved successfully',
-#             'gadgets': gadgets_list
-#         }), 200
-        
-#     except Exception as e:
-#         return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
