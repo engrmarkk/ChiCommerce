@@ -605,7 +605,7 @@ def all_gadgets(id):
     try:
         category = Category.query.get(id)
         if not category:
-            return jsonify({'error': 'Category not found'}), 404
+            return jsonify({'error': 'Category not found'}), http_status_codes.HTTP_404_NOT_FOUND
             
         gadgets = Products.query.filter_by(category_id=id).all()
         
@@ -620,11 +620,93 @@ def all_gadgets(id):
         return jsonify({
             'message': 'Gadgets retrieved successfully',
             'gadgets': gadgets_list
-        }), 200
+        }), http_status_codes.HTTP_200_OK
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
     
     
     
     
+# All Toys
+@admin.get("/all_toys/<string:id>")
+@admin_required()
+def all_toys(id):
+    try:
+        toys = Products.query.filter_by(category_id='id').all()
+        
+        if not toys:
+            return jsonify({
+                'message': 'No toys found in this category',
+                'toys': []
+            }), 200
+            
+        toys_list = [toy.to_dict() for toy in toys]
+        
+        return jsonify({
+            'message': 'Toys retrieved successfully',
+            'toys': toys_list
+        }), http_status_codes.HTTP_200_OK
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+    
+
+
+# All Bed Frames
+@admin.get("/all_bed_frames/<string:id>")
+@admin_required()
+def all_bed_frames(id):
+    try:
+        bed_frames = Products.query.filter_by(category_id='id').all()
+        
+        if not bed_frames:
+            return jsonify({
+                'message': 'No bed frames found',
+                'bed_frames': []
+            }), http_status_codes.HTTP_200_OK
+            
+        bed_frames_list = [bed_frame.to_dict() for bed_frame in bed_frames]
+        
+        return jsonify({
+            'message': 'Bed Frames retrieved successfully',
+            'bed_frames': bed_frames_list
+        }), http_status_codes.HTTP_200_OK
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+
+
+# All products
+@admin.get("/all_products")
+@admin_required()
+def all_products():
+    try:
+        query = request.args.get("query", "")
+        page = request.args.get("page", 1, type=int)
+        per_page = 10
+        
+        products_query = Products.query.filter(Products.name.ilike(f"%{query}%")).paginate(page=page, per_page=per_page)
+        products = products_query.items
+        total_pages = products_query.pages
+        has_next = products_query.has_next
+        has_prev = products_query.has_prev
+        
+        products_list = [product.to_dict() for product in products]
+        
+        return jsonify({
+            'message': 'Products retrieved successfully',
+            'products': products_list,
+            'total_pages': total_pages,
+            'has_next': has_next,
+            'has_prev': has_prev
+        }), http_status_codes.HTTP_200_OK
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
