@@ -552,6 +552,86 @@ def add_product():
     
     
     
+# Delete a product
+@admin.delete("/delete_product/<string:id>")
+@admin_required()
+def delete_product(id):
+    try:
+        # Query the product by its ID
+        product = Products.query.get(id)
+        
+        # Check if the product exists
+        if not product:
+            return jsonify({'error': 'Product not found'}), http_status_codes.HTTP_404_NOT_FOUND
+            
+        # Delete the product
+        db.session.delete(product)
+        db.session.commit()
+        
+        return jsonify({'message': 'Product deleted successfully'}), http_status_codes.HTTP_200_OK
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+    
+    
+
+# Update a product
+@admin.put("/update_product/<string:id>")
+@admin_required()
+def update_product(id):
+    try:
+        # Query the product by its ID
+        product = Products.query.get(id)
+        
+        # Check if the product exists
+        if not product:
+            return jsonify({'error': 'Product not found'}), http_status_codes.HTTP_404_NOT_FOUND
+            
+        # Get the request data
+        data = request.json
+        
+        # Update only the fields that are provided in the request, keeping existing values otherwise
+        product.name = data.get('name', product.name)
+        product.price = data.get('price', product.price)
+        product.color = data.get('color', product.color)
+        product.model = data.get('model', product.model)
+        product.image = data.get('image', product.image)
+        product.category_id = data.get('category_id', product.category_id)
+        product.description = data.get('description', product.description)
+        product.out_of_stock = data.get('out_of_stock', product.out_of_stock)
+        product.specification_1 = data.get('specification_1', product.specification_1)
+        product.specification_2 = data.get('specification_2', product.specification_2)
+        product.specification_3 = data.get('specification_3', product.specification_3)
+        product.specification_4 = data.get('specification_4', product.specification_4)
+        product.specification_5 = data.get('specification_5', product.specification_5)
+        product.specification_6 = data.get('specification_6', product.specification_6)
+        product.specification_7 = data.get('specification_7', product.specification_7)
+        product.specification_8 = data.get('specification_8', product.specification_8)
+        product.specification_9 = data.get('specification_9', product.specification_9)
+        product.specification_10 = data.get('specification_10', product.specification_10)
+        product.specification_11 = data.get('specification_11', product.specification_11)
+        product.specification_12 = data.get('specification_12', product.specification_12)
+        product.specification_13 = data.get('specification_13', product.specification_13)
+        product.specification_14 = data.get('specification_14', product.specification_14)
+        product.specification_15 = data.get('specification_15', product.specification_15)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Product updated successfully',
+            'product': product.to_dict()
+        }), http_status_codes.HTTP_200_OK
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+    
+    
 @admin.get("/single_gadget/<string:id>")
 @admin_required()
 def single_gadgets(id):
@@ -710,3 +790,6 @@ def all_products():
         
     except Exception as e:
         return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
