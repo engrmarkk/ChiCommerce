@@ -630,6 +630,28 @@ def update_product(id):
     
     
     
+# View single product
+@admin.get("/single_product/<string:id>")
+@admin_required()
+def single_product(id):
+    try:
+        # Query the product by its ID
+        product = Products.query.get(id)
+        
+        # Check if the product exists
+        if not product:
+            return jsonify({'error': 'Product not found'}), http_status_codes.HTTP_404_NOT_FOUND
+            
+        # Return the product details
+        return jsonify({
+            'message': 'Product retrieved successfully',
+            'product': product.to_dict()
+        }), http_status_codes.HTTP_200_OK
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
     
     
 @admin.get("/single_gadget/<string:id>")
