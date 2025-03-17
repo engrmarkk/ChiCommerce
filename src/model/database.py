@@ -106,6 +106,7 @@ class Products(db.Model):
             "price": self.price,
             "model": self.model,
             "color": self.color,
+            "out_of_stock": self.out_of_stock,
             "category_id": self.category_id,
             "category_name": self.category.name,
             "image": self.image,
