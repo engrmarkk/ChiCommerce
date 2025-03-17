@@ -79,7 +79,7 @@ class Products(db.Model):
     model = db.Column(db.String(50), nullable=False)
     out_of_stock = db.Column(db.Boolean, default=False)
     category_id = db.Column(db.String(50), db.ForeignKey('category.id'), nullable=False)
-    image = db.Column(db.String(255), nullable=False)
+    image = db.Column(db.String(500), nullable=False)
     specification_1 = db.Column(db.String(100), nullable=True)
     specification_2 = db.Column(db.String(100), nullable=True)
     specification_3 = db.Column(db.String(100), nullable=True)
