@@ -2,20 +2,20 @@ from flask import Flask, request, session, url_for, redirect, Blueprint, jsonify
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
-import validators, re
+import validators, re, logging, os, random, string, datetime, traceback
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, current_user
-import logging, os, random, string, datetime, traceback, re
 import cloudinary
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 import cloudinary.uploader
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from src.model.database import db, User
+from src.model.database import db, User, Products
 from src.constants import http_status_codes
 from flask_mail import Message, Mail  # Import the mail instance here
 from dotenv import load_dotenv
 from datetime import timedelta
 from urllib.parse import unquote
+# from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, current_user
 
 
 logging.basicConfig(level=logging.INFO)
@@ -632,3 +632,52 @@ def reset_password():
 
 
     
+
+# Get all products paginated
+@auth.get("/get_all_products")
+@jwt_required()
+def get_all_products():
+    try:
+        if not current_user:
+            return jsonify({"message": "User not found"}), http_status_codes.HTTP_404_NOT_FOUND
+        query = request.args.get("query", "")
+        page = request.args.get("page", 1, type=int)
+        per_page = 10
+        
+        products_query = Products.query.filter(Products.name.ilike(f"%{query}%")).paginate(page=page, per_page=per_page)
+        products = products_query.items
+        total_pages = products_query.pages
+        has_next = products_query.has_next
+        has_prev = products_query.has_prev
+        
+        products_list = [product.to_dict() for product in products]
+        
+        return jsonify({
+            'message': 'Products retrieved successfully',
+            'products': products_list,
+            'total_pages': total_pages,
+            'has_next': has_next,
+            'has_prev': has_prev
+        }), http_status_codes.HTTP_200_OK
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+    
+    
+    
+# Get single product
+@auth.get("/single_product/<string:id>")
+@jwt_required()
+def get_single_product(id):
+    try:
+        if not current_user:
+            return jsonify({"message": "User not found"}), http_status_codes.HTTP_404_NOT_FOUND
+        product = Products.query.filter_by(id=id).first()
+        if not product:
+            return jsonify({"message": "Product not found"}), http_status_codes.HTTP_404_NOT_FOUND
+        return jsonify({"message": "Product retrieved successfully", "product": product.to_dict()}), http_status_codes.HTTP_200_OK
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR

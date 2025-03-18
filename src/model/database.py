@@ -10,6 +10,7 @@ import random
 import string
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
+from flask_login import UserMixin
 
 from datetime import datetime, timedelta, date
 
@@ -25,7 +26,7 @@ def random_id():
 
 
 # User Model
-class User(db.Model):
+class User(UserMixin, db.Model):
     __tablename__ = "users"
     id = db.Column(db.String(50), primary_key=True, default=random_id)
     username = db.Column(db.String(50), unique=True, nullable=False)
