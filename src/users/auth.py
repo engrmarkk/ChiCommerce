@@ -635,11 +635,11 @@ def reset_password():
 
 # Get all products paginated
 @auth.get("/get_all_products")
-@jwt_required()
+# @jwt_required()
 def get_all_products():
     try:
-        if not current_user:
-            return jsonify({"message": "User not found"}), http_status_codes.HTTP_404_NOT_FOUND
+        # if not current_user:
+        #     return jsonify({"message": "User not found"}), http_status_codes.HTTP_404_NOT_FOUND
         query = request.args.get("query", "")
         page = request.args.get("page", 1, type=int)
         per_page = 10
@@ -670,11 +670,11 @@ def get_all_products():
     
 # Get single product
 @auth.get("/single_product/<string:id>")
-@jwt_required()
+# @jwt_required()
 def get_single_product(id):
     try:
-        if not current_user:
-            return jsonify({"message": "User not found"}), http_status_codes.HTTP_404_NOT_FOUND
+        # if not current_user:
+        #     return jsonify({"message": "User not found"}), http_status_codes.HTTP_404_NOT_FOUND
         product = Products.query.filter_by(id=id).first()
         if not product:
             return jsonify({"message": "Product not found"}), http_status_codes.HTTP_404_NOT_FOUND
