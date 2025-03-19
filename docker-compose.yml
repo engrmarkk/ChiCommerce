@@ -7,8 +7,6 @@ services:
       dockerfile: Dockerfile
     restart: always
     container_name: Chi_Icon
-    networks:
-      - networkName
     ports:
       - "5000:5000"
 #     environment:
