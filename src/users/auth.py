@@ -70,41 +70,48 @@ def test():
 
 
 
-# Register user
 @auth.post("/register_user")
 def register():
+    # Validate input data
+    username = request.json.get('username')
+    first_name = request.json.get('first_name')
+    last_name = request.json.get('last_name')
+    email = request.json.get('email')
+    password = request.json.get('password')
+    confirm_password = request.json.get('confirm_password')
+    phone_number = request.json.get('phone_number')
+
+    # Validate password
+    password_error = validate_password(password)
+    if password_error:
+        return jsonify({"message": password_error}), http_status_codes.HTTP_400_BAD_REQUEST
+
+    # Passwords don't match
+    if password != confirm_password:
+        return jsonify({"message": "Passwords don't match"}), http_status_codes.HTTP_400_BAD_REQUEST
+
+    # Check if email is valid
+    if not validators.email(email):
+        return jsonify({"message": "Invalid email"}), http_status_codes.HTTP_400_BAD_REQUEST
+
+    # Check if email or username already exists
     try:
-        mail = current_app.extensions.get('mail')
-        if not mail:
-            raise RuntimeError("Flask-Mail not initialized")
-
-        username = request.json.get('username')
-        first_name = request.json.get('first_name')
-        last_name = request.json.get('last_name')
-        email = request.json.get('email')
-        password = request.json.get('password')
-        confirm_password = request.json.get('confirm_password')
-        phone_number = request.json.get('phone_number')
-        # profile_pic = request.json.get('profile_pic')
-        
-        # Validate password
-        password_error = validate_password(password)
-        if password_error:
-            return jsonify({"message": password_error}), http_status_codes.HTTP_400_BAD_REQUEST
-        
-        # Passwords don't match
-        if password != confirm_password:
-            return jsonify({"message": "Passwords don't match"}), http_status_codes.HTTP_400_BAD_REQUEST
-
-        # Check if email is valid
-        if not validators.email(email):
-            return jsonify({"message": "Invalid email"}), http_status_codes.HTTP_400_BAD_REQUEST
-
-        # Check if email exist
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
+        existing_email = User.query.filter_by(email=email).first()
+        if existing_email:
             return jsonify({"message": "User already exists"}), http_status_codes.HTTP_400_BAD_REQUEST
 
+        existing_username = User.query.filter_by(username=username).first()
+        logger.info(f"Existing username query result: {existing_username}")
+        if existing_username:
+            return jsonify({"message": "User with this username already exists"}), http_status_codes.HTTP_400_BAD_REQUEST
+    except Exception as e:
+        logger.error(f"Database query error: {str(e)}")
+        return jsonify({"message": "Database error"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    if len(phone_number) != 13 or not phone_number.isdigit() or phone_number[0] != '+234':
+        return jsonify({"message": "Phone digits must be 13 digits, and must start with +234"}), http_status_codes.HTTP_400_BAD_REQUEST
+
+    try:
         # Hash password
         hashed_password = generate_password_hash(password, method="pbkdf2:sha256")
 
@@ -120,22 +127,22 @@ def register():
             email=email.lower(),
             password=hashed_password,
             phone_number=phone_number,
-            # profile_pic=cloudinary_url,
             verification_token=verification_token,
         )
         db.session.add(user)
         db.session.commit()
 
-    # Send Verification Email
-        verification_url = (
-        f"https://chi-icon.onrender.com/auth/verify/{verification_token}"
-    )
-        try:
-            msg = Message(
-                "Verify Your Email", sender=os.getenv("MAIL_USERNAME"), recipients=[email]
-            )
-            msg.html = f"""
-            <html>
+        # Send Verification Email
+        verification_url = f"https://chi-icon.onrender.com/auth/verify/{verification_token}"
+        mail = current_app.extensions.get('mail')
+        if not mail:
+            raise RuntimeError("Flask-Mail not initialized")
+
+        msg = Message(
+            "Verify Your Email", sender=os.getenv("MAIL_USERNAME"), recipients=[email]
+        )
+        msg.html = f"""
+        <html>
             <head>
                 <style>
                     body {{
@@ -143,10 +150,10 @@ def register():
                         background-color: #f4f4f4;
                         margin: 0;
                         padding: 20px;
-                        display: flex; /* Use flexbox on body */
-                        justify-content: center; /* Center content horizontally */
-                        align-items: center; /* Center content vertically */
-                        height: 100vh; /* Full viewport height */
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
                     }}
                     .container {{
                         background-color: #ffffff;
@@ -154,14 +161,14 @@ def register():
                         border-radius: 8px;
                         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
                         max-width: 600px;
-                        width: 100%; /* Ensure it doesn't exceed the viewport */
-                        text-align: center;  /* Center text */
+                        width: 100%;
+                        text-align: center;
                     }}
                     img {{
                         width: 250px;
                         height: auto;
                         display: block;
-                        margin: auto
+                        margin: auto;
                     }}
                     h2 {{
                         color: gray;
@@ -200,23 +207,17 @@ def register():
         </html>
         """
 
-            mail.send(msg)
-            logger.info("Verification email sent successfully")
-            return jsonify({"message": "User registered successfully. Please verify your email.", "user": user.to_dict()}), http_status_codes.HTTP_201_CREATED
-
-        except Exception as e:
-            logger.error(f"Error sending email: {str(e)}")
-            return (
-                jsonify({"message": f"Error sending email: {str(e)}"}),
-                http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        mail.send(msg)
+        logger.info("Verification email sent successfully")
+        return jsonify({"message": "User registered successfully. Please verify your email.", "user": user.to_dict()}), http_status_codes.HTTP_201_CREATED
 
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Error during registration: {str(e)}")
+        logger.error(f"Exception type: {type(e).__name__}")
+        logger.error(f"Exception args: {e.args}")
         logger.error(traceback.format_exc())
-        return jsonify({"message": "Error registering user"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
-    
-    
+        return jsonify({"message": "Error registering user", "error": str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
     
     
     
