@@ -10,4 +10,4 @@ sudo docker ps
 # docker-compose exec web flask db init
 # docker-compose exec web flask db migrate
 # docker-compose exec web flask db upgrade
-sudo docker logs -f Chi_icon
+sudo docker logs -f Chi_Icon
