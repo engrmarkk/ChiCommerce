@@ -1,13 +1,13 @@
 #! /bin/bash
 
-docker image prune -f
+sudo docker image prune -f
 # docker volume prune -f
-docker ps
-docker compose up --build -d
-docker image prune -f
+sudo docker ps
+sudo docker compose up --build -d
+sudo docker image prune -f
 # docker volume prune -f
-docker ps
+sudo docker ps
 # docker-compose exec web flask db init
 # docker-compose exec web flask db migrate
 # docker-compose exec web flask db upgrade
-docker logs -f Chi_icon
+sudo docker logs -f Chi_icon
