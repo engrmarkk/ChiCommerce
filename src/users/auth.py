@@ -734,3 +734,58 @@ def search():
     }
 
     return jsonify(response), http_status_codes.HTTP_200_OK
+
+
+
+
+
+@auth.post("/filter-products")
+def filter_products():
+    # Get the JSON body from the request
+    filters = request.get_json() or {}
+    
+    # Extract filter parameters (all optional)
+    name = filters.get("name")
+    model = filters.get("model")
+    color = filters.get("color")
+    price = filters.get("price")  # Must be a dict with min and/or max
+
+    # Start with base query
+    products_query = Products.query
+
+    # Apply filters dynamically based on what's provided
+    if name:
+        products_query = products_query.filter(Products.name.ilike(f"%{name}%"))
+    if model:
+        products_query = products_query.filter(Products.model.ilike(f"%{model}%"))
+    if color:
+        products_query = products_query.filter(Products.color.ilike(f"%{color}%"))
+    if price:
+        if not isinstance(price, dict):
+            return jsonify({"error": "Price must be an object with 'min' and/or 'max'"}), http_status_codes.HTTP_400_BAD_REQUEST
+        
+        min_price = price.get("min")
+        max_price = price.get("max")
+        
+        if min_price is not None:
+            products_query = products_query.filter(Products.price >= float(min_price))
+        if max_price is not None:
+            products_query = products_query.filter(Products.price <= float(max_price))
+
+    # Execute the query
+    products = products_query.all()
+    total_products = len(products)
+
+    # Prepare response
+    if total_products == 0:
+        response = {
+            "products": [],
+            "message": "No products found matching the provided filters"
+        }
+    else:
+        response = {
+            "products": [product.to_dict() for product in products],  # Full details with all specs
+            "message": f"{total_products} product(s) found"
+        }
+
+    return jsonify(response), http_status_codes.HTTP_200_OK
