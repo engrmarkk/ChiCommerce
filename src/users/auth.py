@@ -666,9 +666,6 @@ def get_all_products():
     
     
     
-    
-    
-    
 # Get single product
 @auth.get("/single_product/<string:id>")
 # @jwt_required()
@@ -682,3 +679,64 @@ def get_single_product(id):
         return jsonify({"message": "Product retrieved successfully", "product": product.to_dict()}), http_status_codes.HTTP_200_OK
     except Exception as e:
         return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+    
+
+
+
+@auth.get("/search")
+def search():
+    query = request.args.get("query", "")
+    per_page = 10  # Fixed number of items per page, like in the Services example
+
+    # Fetch products that match the query
+    products_query = Products.query.filter(Products.name.ilike(f"%{query}%"))
+
+    # Get total count to determine if pagination is needed
+    total_products = products_query.count()
+
+    # If no products or few products, return all without pagination
+    if total_products <= per_page:
+        products = products_query.all()
+        response = {
+            "products": [{
+                "id": product.id,
+                "product_name": product.name,  
+                "image": product.image,        
+                "price": product.price,        
+                "model": product.model,       
+                "color": product.color         
+            } for product in products],
+            "message": f"{total_products} product(s) found" if total_products > 0 else f"No products found matching '{query}'"
+        }
+        return jsonify(response), HTTPStatus.HTTP_200_OK
+
+    # Paginate products if more than per_page
+    products_paginated = products_query.paginate(page=1, per_page=per_page, error_out=False)
+
+    response = {
+        "products": [{
+            "id": product.id,
+            "product_name": product.name,
+            "image": product.image,
+            "price": product.price,
+            "model": product.model,
+            "color": product.color
+        } for product in products_paginated.items],
+        "pagination": {
+            "current_page": products_paginated.page,
+            "total_pages": products_paginated.pages,
+            "has_next": products_paginated.has_next,
+            "has_prev": products_paginated.has_prev,
+            "next_page": (
+                products_paginated.next_num if products_paginated.has_next else None
+            ),
+            "prev_page": (
+                products_paginated.prev_num if products_paginated.has_prev else None
+            ),
+        },
+    }
+
+    return jsonify(response), HTTPStatus.HTTP_200_OK
