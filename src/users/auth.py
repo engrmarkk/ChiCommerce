@@ -108,8 +108,6 @@ def register():
         logger.error(f"Database query error: {str(e)}")
         return jsonify({"message": "Database error"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
     
-    # if len(phone_number) != 14 or not phone_number.isdigit() or phone_number[0] != '+234':
-    #     return jsonify({"message": "Phone digits must be 13 digits, and must start with +234"}), http_status_codes.HTTP_400_BAD_REQUEST
 
     try:
         # Hash password
