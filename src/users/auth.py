@@ -108,7 +108,9 @@ def register():
         logger.error(f"Database query error: {str(e)}")
         return jsonify({"message": "Database error"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
     
-
+    if not phone_number.isdigit():
+        return jsonify({"message": "Invalid phone number"}), http_status_codes.HTTP_400_BAD_REQUEST
+    
     try:
         # Hash password
         hashed_password = generate_password_hash(password, method="pbkdf2:sha256")
