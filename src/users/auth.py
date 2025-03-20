@@ -684,15 +684,23 @@ def get_single_product(id):
     
     
 
-
-
 @auth.get("/search")
 def search():
     query = request.args.get("query", "")
-    per_page = 10  # Fixed number of items per page, like in the Services example
+    per_page = 10  # Fixed number of items per page
 
-    # Fetch products that match the query
-    products_query = Products.query.filter(Products.name.ilike(f"%{query}%"))
+    # Fetch products that match the query across multiple fields
+    search_term = f"%{query}%"
+    products_query = Products.query.filter(
+        db.or_(
+            Products.name.ilike(search_term),
+            Products.description.ilike(search_term),
+            Products.model.ilike(search_term),
+            Products.color.ilike(search_term),
+            db.or_(*[getattr(Products, f'specification_{i}').ilike(search_term) 
+                    for i in range(1, 16)])  # Search all 15 specification fields
+        )
+    )
 
     # Get total count to determine if pagination is needed
     total_products = products_query.count()
@@ -701,30 +709,16 @@ def search():
     if total_products <= per_page:
         products = products_query.all()
         response = {
-            "products": [{
-                "id": product.id,
-                "product_name": product.name,  
-                "image": product.image,        
-                "price": product.price,        
-                "model": product.model,       
-                "color": product.color         
-            } for product in products],
+            "products": [product.to_dict() for product in products],  # Use to_dict() for full specs
             "message": f"{total_products} product(s) found" if total_products > 0 else f"No products found matching '{query}'"
         }
-        return jsonify(response), http_status_codes.HTTP_200_OK
+        return jsonify(response), HTTPStatus.HTTP_200_OK
 
     # Paginate products if more than per_page
     products_paginated = products_query.paginate(page=1, per_page=per_page, error_out=False)
 
     response = {
-        "products": [{
-            "id": product.id,
-            "product_name": product.name,
-            "image": product.image,
-            "price": product.price,
-            "model": product.model,
-            "color": product.color
-        } for product in products_paginated.items],
+        "products": [product.to_dict() for product in products_paginated.items],  # Full specs
         "pagination": {
             "current_page": products_paginated.page,
             "total_pages": products_paginated.pages,
@@ -739,4 +733,4 @@ def search():
         },
     }
 
-    return jsonify(response), http_status_codes.HTTP_200_OK
+    return jsonify(response), HTTPStatus.HTTP_200_OK
