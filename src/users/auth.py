@@ -712,7 +712,7 @@ def search():
             "products": [product.to_dict() for product in products],  # Use to_dict() for full specs
             "message": f"{total_products} product(s) found" if total_products > 0 else f"No products found matching '{query}'"
         }
-        return jsonify(response), HTTPStatus.HTTP_200_OK
+        return jsonify(response), http_status_codes.HTTP_200_OK
 
     # Paginate products if more than per_page
     products_paginated = products_query.paginate(page=1, per_page=per_page, error_out=False)
@@ -733,4 +733,4 @@ def search():
         },
     }
 
-    return jsonify(response), HTTPStatus.HTTP_200_OK
+    return jsonify(response), http_status_codes.HTTP_200_OK
