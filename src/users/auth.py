@@ -820,3 +820,63 @@ def all_gadgets(id):
     except Exception as e:
         return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
     
+    
+    
+    
+    
+# Get all toys
+
+@auth.get("/all_toys/<string:id>")
+def all_toys(id):
+    try:
+        category = Category.query.get(id)
+        if not category:
+            return jsonify({'error': 'Category not found'}), http_status_codes.HTTP_404_NOT_FOUND
+            
+        toys = Products.query.filter_by(category_id=id).all()
+        
+        if not toys:
+            return jsonify({
+                'message': 'No toys found in this category',
+                'toys': []
+            }), 200
+            
+        toys_list = [toy.to_dict() for toy in toys]
+        
+        return jsonify({
+            'message': 'Toys retrieved successfully',
+            'toys': toys_list
+        }), http_status_codes.HTTP_200_OK
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+    
+    
+# Get all beds
+@auth.get("/all_beds/<string:id>")  
+def all_beds(id):
+    try:
+        category = Category.query.get(id)
+        if not category:
+            return jsonify({'error': 'Category not found'}), http_status_codes.HTTP_404_NOT_FOUND
+            
+        beds = Products.query.filter_by(category_id=id).all()
+        
+        if not beds:
+            return jsonify({
+                'message': 'No beds found in this category',
+                'beds': []
+            }), 200
+            
+        beds_list = [bed.to_dict() for bed in beds]
+        
+        return jsonify({
+            'message': 'Beds retrieved successfully',
+            'beds': beds_list
+        }), http_status_codes.HTTP_200_OK
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
