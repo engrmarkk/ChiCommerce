@@ -789,3 +789,37 @@ def filter_products():
         }
 
     return jsonify(response), http_status_codes.HTTP_200_OK
+
+
+
+
+# Get all gadgets
+@auth.get("/get_all_gadgets")
+def get_all_gadgets():
+    try:
+        query = request.args.get("query", "")
+        page = request.args.get("page", 1, type=int)
+        per_page = 10
+        
+        gadgets_query = Gadgets.query.filter(Gadgets.name.ilike(f"%{query}%")).paginate(page=page, per_page=per_page)
+        
+        if not gadgets_query:
+            return jsonify({"message": "No gadgets found"}), http_status_codes.HTTP_404_NOT_FOUND
+        
+        gadgets = gadgets_query.items
+        total_pages = gadgets_query.pages
+        has_next = gadgets_query.has_next
+        has_prev = gadgets_query.has_prev
+        
+        gadgets_list = [gadget.to_dict() for gadget in gadgets]
+        
+        return jsonify({
+            'message': 'Gadgets retrieved successfully',
+            'gadgets': gadgets_list,
+            'total_pages': total_pages,
+            'has_next': has_next,
+            'has_prev': has_prev
+        }), http_status_codes.HTTP_200_OK
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
