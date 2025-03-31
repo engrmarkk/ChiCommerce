@@ -880,3 +880,27 @@ def all_beds(id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+
+
+# Get all categories
+@auth.get('/all_categories')
+def all_categories():
+    try:
+        categories = Category.query.all()
+        
+        if not categories:
+            return jsonify({
+                'message': 'No categories found',
+                'categories': []}), http_status_codes.HTTP_404_NOT_FOUND
+            
+        categories_list = [category.to_dict() for category in categories]
+        
+        return jsonify({
+            'message': 'Categories retrieved successfully',
+            'categories': categories_list
+        }), http_status_codes.HTTP_200_OK
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+            
