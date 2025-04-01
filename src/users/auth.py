@@ -639,13 +639,17 @@ def reset_password():
 # @jwt_required()
 def get_all_products():
     try:
-        # if not current_user:
-        #     return jsonify({"message": "User not found"}), http_status_codes.HTTP_404_NOT_FOUND
         query = request.args.get("query", "")
         page = request.args.get("page", 1, type=int)
         per_page = 10
         
-        products_query = Products.query.filter(Products.name.ilike(f"%{query}%")).paginate(page=page, per_page=per_page)
+        products_query = (
+            Products.query
+            .filter(Products.name.ilike(f"%{query}%"))
+            .order_by(Products.created_at.desc()) 
+            .paginate(page=page, per_page=per_page)
+        )
+        
         products = products_query.items
         total_pages = products_query.pages
         has_next = products_query.has_next
@@ -663,6 +667,7 @@ def get_all_products():
         
     except Exception as e:
         return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
     
     
     
@@ -802,7 +807,7 @@ def all_gadgets(id):
         if not category:
             return jsonify({'error': 'Category not found'}), http_status_codes.HTTP_404_NOT_FOUND
             
-        gadgets = Products.query.filter_by(category_id=id).all()
+        gadgets = Products.query.filter_by(category_id=id).order_by(Products.created_at.desc()).all()
         
         if not gadgets:
             return jsonify({
@@ -822,8 +827,6 @@ def all_gadgets(id):
     
     
     
-    
-    
 # Get all toys
 
 @auth.get("/all_toys/<string:id>")
@@ -833,7 +836,9 @@ def all_toys(id):
         if not category:
             return jsonify({'error': 'Category not found'}), http_status_codes.HTTP_404_NOT_FOUND
             
-        toys = Products.query.filter_by(category_id=id).all()
+        # toys = Products.query.filter_by(category_id=id).all()
+        toys = Products.query.filter_by(category_id=id).order_by(Products.created_at.desc()).all()
+        
         
         if not toys:
             return jsonify({
@@ -863,7 +868,9 @@ def all_beds(id):
         if not category:
             return jsonify({'error': 'Category not found'}), http_status_codes.HTTP_404_NOT_FOUND
             
-        beds = Products.query.filter_by(category_id=id).all()
+        # beds = Products.query.filter_by(category_id=id).all()
+        beds = Products.query.filter_by(category_id=id).order_by(Products.created_at.desc()).all()
+        
         
         if not beds:
             return jsonify({
