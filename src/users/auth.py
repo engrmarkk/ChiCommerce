@@ -819,7 +819,8 @@ def all_gadgets(id):
         
         return jsonify({
             'message': 'Gadgets retrieved successfully',
-            'gadgets': gadgets_list
+            'gadgets': gadgets_list,
+            "image": gadgets.image,
         }), http_status_codes.HTTP_200_OK
         
     except Exception as e:
@@ -850,7 +851,8 @@ def all_toys(id):
         
         return jsonify({
             'message': 'Toys retrieved successfully',
-            'toys': toys_list
+            'toys': toys_list,
+            "image": toys.image,
         }), http_status_codes.HTTP_200_OK
         
     except Exception as e:
@@ -882,7 +884,8 @@ def all_beds(id):
         
         return jsonify({
             'message': 'Beds retrieved successfully',
-            'beds': beds_list
+            'beds': beds_list,
+            "image": beds.image,
         }), http_status_codes.HTTP_200_OK
         
     except Exception as e:
