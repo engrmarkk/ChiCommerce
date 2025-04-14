@@ -820,7 +820,7 @@ def all_gadgets(id):
         return jsonify({
             'message': 'Gadgets retrieved successfully',
             'gadgets': gadgets_list,
-            "image": gadgets.image,
+            # "image": gadgets.image,
         }), http_status_codes.HTTP_200_OK
         
     except Exception as e:
@@ -837,9 +837,10 @@ def all_toys(id):
         if not category:
             return jsonify({'error': 'Category not found'}), http_status_codes.HTTP_404_NOT_FOUND
             
-        # toys = Products.query.filter_by(category_id=id).all()
-        toys = Products.query.filter_by(category_id=id).order_by(Products.created_at.desc()).all()
-        
+        # Order by created_at descending, with NULLs last
+        toys = Products.query.filter_by(category_id=id)\
+                    .order_by(db.desc(Products.created_at))\
+                    .all()
         
         if not toys:
             return jsonify({
@@ -851,14 +852,11 @@ def all_toys(id):
         
         return jsonify({
             'message': 'Toys retrieved successfully',
-            'toys': toys_list,
-            "image": toys.image,
+            'toys': toys_list
         }), http_status_codes.HTTP_200_OK
         
     except Exception as e:
         return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
-    
-    
     
     
     
@@ -885,7 +883,7 @@ def all_beds(id):
         return jsonify({
             'message': 'Beds retrieved successfully',
             'beds': beds_list,
-            "image": beds.image,
+            # "image": beds.image,
         }), http_status_codes.HTTP_200_OK
         
     except Exception as e:
