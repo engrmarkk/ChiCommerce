@@ -96,7 +96,7 @@ class Products(db.Model):
     specification_13 = db.Column(db.String(100), nullable=True)
     specification_14 = db.Column(db.String(100), nullable=True)
     specification_15 = db.Column(db.String(100), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     category = db.relationship('Category', backref='products')
 
