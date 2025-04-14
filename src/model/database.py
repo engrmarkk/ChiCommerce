@@ -96,6 +96,7 @@ class Products(db.Model):
     specification_13 = db.Column(db.String(100), nullable=True)
     specification_14 = db.Column(db.String(100), nullable=True)
     specification_15 = db.Column(db.String(100), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     category = db.relationship('Category', backref='products')
 
@@ -125,7 +126,8 @@ class Products(db.Model):
             "specification_12": self.specification_12,
             "specification_13": self.specification_13,
             "specification_14": self.specification_14,
-            "specification_15": self.specification_15
+            "specification_15": self.specification_15,
+            "created_at": self.created_at.isoformat() if self.created_at else None
         }
 
 
