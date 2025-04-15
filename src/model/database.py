@@ -62,11 +62,13 @@ class Category(db.Model):
     __tablename__ = "category"
     id = db.Column(db.String(50), primary_key=True, default=random_id)
     name = db.Column(db.String(50), nullable=False)
+    image = db.Column(db.String(500), nullable=False)
 
     def to_dict(self):
         return {
             "id": self.id,
-            "name": self.name
+            "name": self.name,
+            "image": self.image
         }
 
 # Products Model

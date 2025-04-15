@@ -379,6 +379,7 @@ def login():
 def add_category():
     data = request.json
     name = data.get("name")
+    image = data.get("image")
     
     if not name:
         return jsonify({"message": "Category name is required"}), http_status_codes.HTTP_400_BAD_REQUEST
@@ -388,13 +389,26 @@ def add_category():
     if existing_name:
         return jsonify({"message": "This category name already exists."}), http_status_codes.HTTP_409_CONFLICT
     
-    new_category = Category(name=name)
+    if not image:
+        return jsonify({"message": "Category image is required"}), http_status_codes.HTTP_400_BAD_REQUEST
+    
+    try:
+        upload_result = cloudinary.uploader.upload(image)
+        image_url = upload_result["secure_url"]
+    except Exception as e:
+        logger.error(f"Error uploading image: {str(e)}")
+        return jsonify({"message": "Error uploading image"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+    new_category = Category(name=name, image=image_url)
     db.session.add(new_category)
     db.session.commit()
     
     return jsonify({"message": "New category added successfully", "category": {
         "id": new_category.id,
-        "name": new_category.name
+        "name": new_category.name,
+        "image": new_category.image
     }})
     
     
