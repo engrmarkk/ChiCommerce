@@ -9,7 +9,7 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature
 import cloudinary.uploader
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from src.model.database import db, User, Products, Category
+from src.model.database import db, User, Products, Category, Cart
 from src.constants import http_status_codes
 from flask_mail import Message, Mail  # Import the mail instance here
 from dotenv import load_dotenv
@@ -912,3 +912,131 @@ def all_categories():
     except Exception as e:
         return jsonify({'error': str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
             
+            
+            
+            
+            
+            
+            
+
+# Users adding items to cart
+@auth.post("/add_to_cart")
+@jwt_required()
+def add_to_cart():
+    try:
+        data = request.get_json()
+        product_id = data.get("product_id")
+        quantity = data.get("quantity")
+        
+        if not product_id or not quantity:
+            return jsonify({"error": "Product ID and quantity are required"}), http_status_codes.HTTP_400_BAD_REQUEST
+        
+        # Check if the product exists
+        product = Products.query.get(product_id)
+        if not product:
+            return jsonify({"error": "Product not found"}), http_status_codes.HTTP_404_NOT_FOUND
+        
+        # Check if the product is available
+        if product.out_of_stock:
+            return jsonify({"error": "Product is not available"}), http_status_codes.HTTP_400_BAD_REQUEST
+        
+        # Add the product to the cart
+        cart = Cart(user_id=current_user.id, product_id=product_id, quantity=quantity)
+        db.session.add(cart)
+        db.session.commit()
+        
+        return jsonify({"message": "Product added to cart successfully",
+                        "product": product.to_dict()}), http_status_codes.HTTP_200_OK
+
+    except Exception as e:
+        logger.error(f"Error adding product to cart: {str(e)}")
+        return jsonify({"error": str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+# Get all items in cart
+@auth.get("/get_all_cart_items")
+@jwt_required()
+def get_all_cart_items():
+    try:
+        cart_items = Cart.query.filter_by(user_id=current_user.id).all()
+        if not cart_items:
+            return jsonify({"message": "Your cart is empty",
+                        "cart_items": []}), http_status_codes.HTTP_200_OK
+        
+        consolidated_items = {}
+        for item in cart_items:
+            if item.product_id in consolidated_items:
+                consolidated_items[item.product_id]['quantity'] += item.quantity
+            else:
+                consolidated_items[item.product_id] = item.to_dict()
+        
+        return jsonify({
+            "cart_items": list(consolidated_items.values())
+        }), http_status_codes.HTTP_200_OK
+
+    except Exception as e:
+        logger.error(f"Error getting cart items: {str(e)}")
+        return jsonify({"error": str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+    
+
+# Update cart items
+@auth.put("/update_cart")
+@jwt_required()
+def update_cart():
+    try:
+        data = request.get_json()
+        item_id = data.get("item_id")
+        quantity = data.get("quantity")
+        
+        if not item_id or quantity is None:
+            return jsonify({"error": "Item ID and quantity are required"}), http_status_codes.HTTP_400_BAD_REQUEST
+        
+        cart_item = Cart.query.filter_by(
+            id=item_id, 
+            user_id=current_user.id
+        ).first()
+        
+        if not cart_item:
+            return jsonify({"error": "Cart item not found"}), http_status_codes.HTTP_404_NOT_FOUND
+        
+        # Update the quantity
+        cart_item.quantity = quantity
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Cart item updated successfully",
+            "cart_item": cart_item.to_dict()
+        }), http_status_codes.HTTP_200_OK
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error updating cart item: {str(e)}")
+        return jsonify({"error": str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
+    
+    
+    
+    
+    
+# Remove item from cart
+@auth.delete("/remove_from_cart/<string:item_id>")
+@jwt_required()
+def remove_from_cart(item_id):
+    try:
+        cart_item = Cart.query.filter_by(id=item_id, user_id=current_user.id).first()
+        
+        if not cart_item:
+            return jsonify({"error": "Cart item not found"}), http_status_codes.HTTP_404_NOT_FOUND
+        
+        db.session.delete(cart_item)
+        db.session.commit()
+        
+        return jsonify({"message": f" Item removed successfully"}), http_status_codes.HTTP_200_OK
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error removing cart item: {str(e)}")
+        return jsonify({"error": str(e)}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR

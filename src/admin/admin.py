@@ -372,45 +372,59 @@ def login():
     
     
     
-    
-# Add new category
 @admin.post("/add_category")
 @admin_required()
 def add_category():
-    data = request.json
-    name = data.get("name")
-    image = data.get("image")
-    
-    if not name:
-        return jsonify({"message": "Category name is required"}), http_status_codes.HTTP_400_BAD_REQUEST
-    
-    existing_name = Category.query.filter_by(name=name).first()
-    
-    if existing_name:
-        return jsonify({"message": "This category name already exists."}), http_status_codes.HTTP_409_CONFLICT
-    
-    if not image:
-        return jsonify({"message": "Category image is required"}), http_status_codes.HTTP_400_BAD_REQUEST
-    
     try:
-        upload_result = cloudinary.uploader.upload(image)
-        image_url = upload_result["secure_url"]
+        data = request.get_json()
+        name = data.get("name")
+        image = data.get("image")
+        
+        # Validate required fields
+        if not name:
+            return jsonify({"message": "Category name is required"}), http_status_codes.HTTP_400_BAD_REQUEST
+        
+        if not image:
+            return jsonify({"message": "Category image is required"}), http_status_codes.HTTP_400_BAD_REQUEST
+        
+        # Check for duplicate category name
+        existing_category = Category.query.filter(
+            func.lower(Category.name) == func.lower(name)
+        ).first()
+        
+        if existing_category:
+            return jsonify({"message": "This category name already exists"}), http_status_codes.HTTP_409_CONFLICT
+        
+        # Upload image to Cloudinary
+        try:
+            upload_result = cloudinary.uploader.upload(image)
+            image_url = upload_result.get("secure_url")
+        except Exception as e:
+            logger.error(f"Error uploading image to Cloudinary: {str(e)}")
+            return jsonify({"message": "Failed to upload image"}), http_status_codes.HTTP_400_BAD_REQUEST
+        
+        # Create new category
+        new_category = Category(
+            name=name.strip(),
+            image=image_url
+        )
+        
+        db.session.add(new_category)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "New category added successfully",
+            "category": {
+                "id": new_category.id,
+                "name": new_category.name,
+                "image": new_category.image
+            }
+        }), http_status_codes.HTTP_201_CREATED
+        
     except Exception as e:
-        logger.error(f"Error uploading image: {str(e)}")
-        return jsonify({"message": "Error uploading image"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
-    
-    
-    
-    new_category = Category(name=name, image=image_url)
-    db.session.add(new_category)
-    db.session.commit()
-    
-    return jsonify({"message": "New category added successfully", "category": {
-        "id": new_category.id,
-        "name": new_category.name,
-        "image": new_category.image
-    }})
-    
+        db.session.rollback()
+        logger.error(f"Error adding category: {str(e)}")
+        return jsonify({"message": "An error occurred while adding category"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
     
     
 

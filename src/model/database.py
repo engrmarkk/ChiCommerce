@@ -134,3 +134,22 @@ class Products(db.Model):
 
 
 
+
+class Cart(db.Model):
+    __tablename__ = "cart"
+    id = db.Column(db.String(50), primary_key=True, default=random_id)
+    user_id = db.Column(db.String(50), db.ForeignKey('users.id'), nullable=False)
+    product_id = db.Column(db.String(50), db.ForeignKey('products.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    
+    product = db.relationship('Products', backref='cart')
+    
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            # "user_id": self.user_id,
+            "product_id": self.product_id,
+            "product_name": self.product.name,
+            "quantity": self.quantity,
+        }
