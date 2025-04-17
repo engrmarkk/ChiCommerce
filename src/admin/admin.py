@@ -435,27 +435,33 @@ def add_category():
 @admin_required()
 def delete_category():
     category_id = request.json.get("category_id")
-    print(category_id, "CATEGORY ID")    
     if not category_id:
         return jsonify({"message": "Category ID is required"}), http_status_codes.HTTP_400_BAD_REQUEST
     
     category = Category.query.get(category_id)
-    
     if not category:
         return jsonify({"message": "Category not found"}), http_status_codes.HTTP_404_NOT_FOUND
     
+    
+    # First handle associated products
     try:
+        products = Product.query.filter_by(category_id=category_id).all()
+        
+        # Delete the products associated with the category
+        for product in products:
+            db.session.delete(product)
+            
+            
+        # Then delete the category
         db.session.delete(category)
         db.session.commit()
         
-        return jsonify({"message": "Category deleted successfully"}), http_status_codes.HTTP_200_OK
+        return jsonify({"message": "Category and its products deleted successfully"}), http_status_codes.HTTP_200_OK
     
     except SQLAlchemyError as e:
         db.session.rollback()
         logger.error(f"Error deleting category: {str(e)}")
         return jsonify({"message": "Error deleting category"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
-    
-    
     
     
 
