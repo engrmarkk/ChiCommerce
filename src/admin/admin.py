@@ -379,6 +379,7 @@ def add_category():
         data = request.get_json()
         name = data.get("name")
         image = data.get("image")
+        print(name, image, "IMAGEEEEEEEEEEEETTTTTTTTT", "BEFORE")
         
         # Validate required fields
         if not name:
@@ -422,6 +423,7 @@ def add_category():
                 "image": new_category.image
             }
         }), http_status_codes.HTTP_201_CREATED
+        
         
     except Exception as e:
         db.session.rollback()
