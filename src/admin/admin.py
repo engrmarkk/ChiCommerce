@@ -386,11 +386,13 @@ def add_category():
         
         if not image:
             return jsonify({"message": "Category image is required"}), http_status_codes.HTTP_400_BAD_REQUEST
+        print("I AM HEREEEEEEE")
         
         # Check for duplicate category name
         existing_category = Category.query.filter(
             func.lower(Category.name) == func.lower(name)
         ).first()
+        
         
         if existing_category:
             return jsonify({"message": "This category name already exists"}), http_status_codes.HTTP_409_CONFLICT
@@ -405,7 +407,7 @@ def add_category():
         
         # Create new category
         new_category = Category(
-            name=name.strip(),
+            name=name,
             image=image_url
         )
         
