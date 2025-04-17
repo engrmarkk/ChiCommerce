@@ -439,7 +439,7 @@ def delete_category():
     if not category_id:
         return jsonify({"message": "Category ID is required"}), http_status_codes.HTTP_400_BAD_REQUEST
     
-    category = Category.query.get(id=category_id).first()
+    category = Category.query.get(category_id)
     
     if not category:
         return jsonify({"message": "Category not found"}), http_status_codes.HTTP_404_NOT_FOUND
