@@ -445,7 +445,7 @@ def delete_category():
     
     # First handle associated products
     try:
-        products = Product.query.filter_by(category_id=category_id).all()
+        products = Products.query.filter_by(category_id=category_id).all()
         
         # Delete the products associated with the category
         for product in products:
