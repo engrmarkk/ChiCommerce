@@ -431,10 +431,15 @@ def add_category():
 
 
 # Delete category
-@admin.delete("/delete_category/<string:id>")
+@admin.delete("/delete_category")
 @admin_required()
-def delete_category(id):
-    category = Category.query.get(id)
+def delete_category():
+    category_id = request.json.get("category_id")
+    print(category_id, "CATEGORY ID")    
+    if not category_id:
+        return jsonify({"message": "Category ID is required"}), http_status_codes.HTTP_400_BAD_REQUEST
+    
+    category = Category.query.get(id=category_id).first()
     
     if not category:
         return jsonify({"message": "Category not found"}), http_status_codes.HTTP_404_NOT_FOUND
