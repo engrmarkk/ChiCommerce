@@ -390,10 +390,7 @@ def add_category():
         print("I AM HEREEEEEEE")
         
         # Check for duplicate category name
-        existing_category = Category.query.filter(
-            func.lower(Category.name) == func.lower(name)
-        ).first()
-        
+        existing_category = Category.query.filter_by(name=name).first()
         
         if existing_category:
             return jsonify({"message": "This category name already exists"}), http_status_codes.HTTP_409_CONFLICT
