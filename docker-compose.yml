@@ -9,6 +9,8 @@ services:
     container_name: Chi_Icon
     ports:
       - "5000:5000"
+    env_file:
+      - .env 
 #     environment:
 #       MYSQL_HOST: mysql
 #       MYSQL_USER: ${MYSQL_USER}
