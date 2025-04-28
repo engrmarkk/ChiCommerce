@@ -430,7 +430,6 @@ def add_category():
     
 
 
-# Delete category
 @admin.delete("/delete_category")
 @admin_required()
 def delete_category():
@@ -441,29 +440,29 @@ def delete_category():
     category = Category.query.get(category_id)
     if not category:
         return jsonify({"message": "Category not found"}), http_status_codes.HTTP_404_NOT_FOUND
-    
-    
-    # First handle associated products
+
     try:
         products = Products.query.filter_by(category_id=category_id).all()
         
-        # Delete the products associated with the category
         for product in products:
+            # First clean up dependent carts
+            carts = Cart.query.filter_by(product_id=product.id).all()
+            for cart in carts:
+                db.session.delete(cart)
+            
             db.session.delete(product)
-            
-            
-        # Then delete the category
+        
         db.session.delete(category)
         db.session.commit()
         
-        return jsonify({"message": "Category and its products deleted successfully"}), http_status_codes.HTTP_200_OK
-    
+        return jsonify({"message": "Category, products, and linked carts deleted successfully"}), http_status_codes.HTTP_200_OK
+
     except SQLAlchemyError as e:
         db.session.rollback()
         logger.error(f"Error deleting category: {str(e)}")
         print(str(e), "ERRORRRRRRR")
         return jsonify({"message": "Error deleting category"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
-    
+
     
 
 
