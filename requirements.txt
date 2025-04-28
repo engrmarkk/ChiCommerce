@@ -4,7 +4,7 @@ blinker==1.8.2
 certifi==2024.8.30
 cffi==1.17.1
 click==8.1.7
-cloudinary==1.41.0
+cloudinary
 cryptography==43.0.1
 dnspython==2.7.0
 eventlet==0.39.0
