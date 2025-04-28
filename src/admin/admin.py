@@ -461,6 +461,7 @@ def delete_category():
     except SQLAlchemyError as e:
         db.session.rollback()
         logger.error(f"Error deleting category: {str(e)}")
+        print(str(e), "ERRORRRRRRR")
         return jsonify({"message": "Error deleting category"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
     
     
