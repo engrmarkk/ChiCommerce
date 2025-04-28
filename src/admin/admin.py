@@ -12,7 +12,7 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature
 import cloudinary.uploader
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from src.model.database import db, User, Category, Products
+from src.model.database import db, User, Category, Products, Cart
 from src.constants import http_status_codes
 from flask_mail import Message, Mail  # Import the mail instance here
 from dotenv import load_dotenv
