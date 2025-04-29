@@ -17,6 +17,7 @@ from src.constants import http_status_codes
 from flask_mail import Message, Mail  # Import the mail instance here
 from dotenv import load_dotenv
 from datetime import timedelta
+from flask_jwt_extended.exceptions import NoAuthorizationError, InvalidHeaderError
 from urllib.parse import quote 
 from urllib.parse import unquote
 from functools import wraps
@@ -373,7 +374,7 @@ def login():
     
     
 @admin.post("/add_category")
-@admin_required()
+# @admin_required()
 def add_category():
     try:
         data = request.get_json()
@@ -425,6 +426,7 @@ def add_category():
     except Exception as e:
         db.session.rollback()
         logger.error(f"Error adding category: {str(e)}")
+        print(f"{str(e)}", "ERROR FROM ADMIN")
         return jsonify({"message": "An error occurred while adding category"}), http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR
     
     
