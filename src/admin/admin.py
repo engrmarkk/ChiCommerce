@@ -59,36 +59,47 @@ from http import HTTPStatus
 
 
 
+from functools import wraps
+from flask import jsonify, request
+from flask_jwt_extended import (
+    jwt_required, 
+    get_jwt_identity,
+    verify_jwt_in_request,
+    get_jwt
+)
+from http import HTTPStatus
+
+
+
 def admin_required():
     def wrapper(fn):
         @wraps(fn)
-        @jwt_required()
         def decorator(*args, **kwargs):
             try:
-                # Get user identity from JWT
+                verify_jwt_in_request()
+                
+                jwt_data = get_jwt()
                 user_id = get_jwt_identity()
                 
-                if not user_id:
-                    return jsonify({"message": "Missing user identity in token"}), HTTPStatus.UNAUTHORIZED
+                # Check admin status from JWT claims first
+                if not jwt_data.get('is_admin', False):
+                    return jsonify({"message": "Admin access required"}), HTTPStatus.FORBIDDEN
                 
-                # Query the user
+                # Then verify against database
                 user = User.query.get(user_id)
-                
                 if not user:
                     return jsonify({"message": "User not found"}), HTTPStatus.NOT_FOUND
                 
-                if not hasattr(user, 'is_admin'):
-                    return jsonify({"message": "User model missing admin attribute"}), HTTPStatus.INTERNAL_SERVER_ERROR
-                
-                if not user.is_admin:
+                if not hasattr(user, 'is_admin') or not user.is_admin:
                     return jsonify({"message": "Admin privileges required"}), HTTPStatus.FORBIDDEN
                 
-                # If all checks pass, proceed to the endpoint
                 return fn(*args, **kwargs)
             
             except Exception as e:
-                # Log the error here if you have logging setup
-                return jsonify({"message": "An error occurred while verifying admin status", "error": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
+                return jsonify({
+                    "message": "Authentication failed",
+                    "error": str(e)
+                }), HTTPStatus.UNAUTHORIZED
             
         return decorator
     return wrapper
@@ -367,29 +378,58 @@ def resend_verification():
 # Admin login
 @admin.post("/login_admin")
 def login():
-    email = request.json.get("email", "")
-    password = request.json.get("password", "")
+    try:
+        if not request.is_json:
+            return jsonify({"message": "Missing JSON in request"}), HTTPStatus.BAD_REQUEST
 
-    user = User.query.filter_by(email=email).first()
+        email = request.json.get("email", "").strip()
+        password = request.json.get("password", "")
 
-    if not user or not check_password_hash(user.password, password):
-        return jsonify({"message": "Invalid email or password"}), http_status_codes.HTTP_401_UNAUTHORIZED
+        if not email or not password:
+            return jsonify({"message": "Email and password are required"}), HTTPStatus.BAD_REQUEST
 
-    access_token = create_access_token(identity=user.id, fresh=True)
-    refresh_token = create_refresh_token(identity=user.id)
+        user = User.query.filter_by(email=email).first()
 
-    return jsonify({
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "user": {   
-            "id": user.id,
-            "first_name": user.first_name,
-            "last_name": user.last_name,            
-            "email": user.email,
-            "is_admin": user.is_admin
+        if not user or not check_password_hash(user.password, password):
+            return jsonify({"message": "Invalid email or password"}), HTTPStatus.UNAUTHORIZED
+
+        # Verify admin status before issuing tokens
+        if not hasattr(user, 'is_admin') or not user.is_admin:
+            return jsonify({"message": "Admin access required"}), HTTPStatus.FORBIDDEN
+
+        # Create tokens with additional claims
+        additional_claims = {
+            "is_admin": user.is_admin,
+            "email": user.email
         }
-    }), http_status_codes.HTTP_200_OK
-    
+        
+        access_token = create_access_token(
+            identity=user.id,
+            fresh=True,
+            additional_claims=additional_claims
+        )
+        refresh_token = create_refresh_token(
+            identity=user.id,
+            additional_claims=additional_claims
+        )
+
+        return jsonify({
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": {
+                "id": user.id,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+                "is_admin": user.is_admin
+            }
+        }), HTTPStatus.OK
+
+    except Exception as e:
+        return jsonify({
+            "message": "Login failed",
+            "error": str(e)
+        }), HTTPStatus.INTERNAL_SERVER_ERROR
     
     
 @admin.post("/add_category")
