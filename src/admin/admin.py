@@ -50,6 +50,10 @@ def validate_password(password):
 
 
 
+from functools import wraps
+from flask import jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from http import HTTPStatus
 
 
 
@@ -58,19 +62,34 @@ def validate_password(password):
 def admin_required():
     def wrapper(fn):
         @wraps(fn)
-        @jwt_required() 
+        @jwt_required()
         def decorator(*args, **kwargs):
-            user_id = get_jwt_identity()
+            try:
+                # Get user identity from JWT
+                user_id = get_jwt_identity()
+                
+                if not user_id:
+                    return jsonify({"message": "Missing user identity in token"}), HTTPStatus.UNAUTHORIZED
+                
+                # Query the user
+                user = User.query.get(user_id)
+                
+                if not user:
+                    return jsonify({"message": "User not found"}), HTTPStatus.NOT_FOUND
+                
+                if not hasattr(user, 'is_admin'):
+                    return jsonify({"message": "User model missing admin attribute"}), HTTPStatus.INTERNAL_SERVER_ERROR
+                
+                if not user.is_admin:
+                    return jsonify({"message": "Admin privileges required"}), HTTPStatus.FORBIDDEN
+                
+                # If all checks pass, proceed to the endpoint
+                return fn(*args, **kwargs)
             
-            user = User.query.get(user_id)
+            except Exception as e:
+                # Log the error here if you have logging setup
+                return jsonify({"message": "An error occurred while verifying admin status", "error": str(e)}), HTTPStatus.INTERNAL_SERVER_ERROR
             
-            if not user:
-                return jsonify({"message": "User not found"}), http_status_codes.HTTP_404_NOT_FOUND
-            if not user.is_admin:
-                return jsonify({"message": "Admin access required"}), http_status_codes.HTTP_403_FORBIDDEN
-            
-            # If checks pass, proceed to the endpoint
-            return fn(*args, **kwargs)
         return decorator
     return wrapper
 
@@ -374,7 +393,7 @@ def login():
     
     
 @admin.post("/add_category")
-# @admin_required()
+@admin_required()
 def add_category():
     try:
         data = request.get_json()
