@@ -76,33 +76,33 @@ def admin_required():
         @wraps(fn)
         def decorator(*args, **kwargs):
             try:
+                print("Authorization Header:", request.headers.get('Authorization')) 
+
                 verify_jwt_in_request()
-                
                 jwt_data = get_jwt()
                 user_id = get_jwt_identity()
-                
-                # Check admin status from JWT claims first
+
                 if not jwt_data.get('is_admin', False):
                     return jsonify({"message": "Admin access required"}), HTTPStatus.FORBIDDEN
-                
-                # Then verify against database
+
                 user = User.query.get(user_id)
                 if not user:
                     return jsonify({"message": "User not found"}), HTTPStatus.NOT_FOUND
-                
+
                 if not hasattr(user, 'is_admin') or not user.is_admin:
                     return jsonify({"message": "Admin privileges required"}), HTTPStatus.FORBIDDEN
-                
+
                 return fn(*args, **kwargs)
-            
+
             except Exception as e:
                 return jsonify({
                     "message": "Authentication failed",
                     "error": str(e)
                 }), HTTPStatus.UNAUTHORIZED
-            
+
         return decorator
     return wrapper
+
 
 
 
@@ -540,9 +540,10 @@ def update_category(id):
         return jsonify({"message": "Category not found"}), http_status_codes.HTTP_404_NOT_FOUND
         
     data = request.json
-    new_cat = data.get("name")
-    if not new_cat:
-        return jsonify({"message": "Category name is required"}), http_status_codes.HTTP_400_BAD_REQUEST
+    new_cat = data.get("name", "")
+    new_image = data.get("image", "")
+    # if not new_cat:
+    #     return jsonify({"message": "Category name is required"}), http_status_codes.HTTP_400_BAD_REQUEST
     
     existing_category = Category.query.filter(Category.name == new_cat, Category.id != id).first()
     if existing_category:
@@ -551,6 +552,7 @@ def update_category(id):
     try:
         # Update the category name
         category.name = new_cat
+        category.image = new_image
         db.session.commit()
         
         return jsonify({
