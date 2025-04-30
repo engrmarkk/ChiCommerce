@@ -540,8 +540,8 @@ def update_category(id):
         return jsonify({"message": "Category not found"}), http_status_codes.HTTP_404_NOT_FOUND
         
     data = request.json
-    new_cat = data.get("name", "")
-    new_image = data.get("image", "")
+    new_cat = data.get("name", category.name)
+    new_image = data.get("image", category.image)
     # if not new_cat:
     #     return jsonify({"message": "Category name is required"}), http_status_codes.HTTP_400_BAD_REQUEST
     
