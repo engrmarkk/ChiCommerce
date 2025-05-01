@@ -140,7 +140,7 @@ class Cart(db.Model):
     id = db.Column(db.String(50), primary_key=True, default=random_id)
     user_id = db.Column(db.String(50), db.ForeignKey('users.id'), nullable=False)
     product_id = db.Column(db.String(50), db.ForeignKey('products.id'), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False, default=1)
+    quantity = db.Column(db.Integer, nullable=False, default=0)
     
     product = db.relationship('Products', backref='cart')
     
