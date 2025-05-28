@@ -1,23 +1,22 @@
-from flask import Flask
 import os
-from flask_jwt_extended import JWTManager
-from src.constants import http_status_codes
-from src.model.database import db, User
-from flask_migrate import Migrate
-from src.users.auth import auth
-from src.admin.admin import admin
-from src.users.cloud_nary import cloudnary
 from datetime import timedelta
-from src.extentions.extensions import jwt, mail, cors
 from dotenv import load_dotenv
+from flask import Flask
+from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
 
-
-
+from src.admin.admin import admin
+from src.constants import http_status_codes
+from src.extentions.extensions import jwt, mail, cors
+from src.model.database import db, User
+from src.users.auth import auth
+from src.users.cloud_nary import cloudnary
+from src.users.products import products
 
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
-    
+
     # Load environment variables
     load_dotenv()
 
@@ -26,9 +25,10 @@ def create_app(test_config=None):
         # Security
         SECRET_KEY=os.environ.get("SECRET_KEY", "dev-secret-key"),
         JWT_SECRET_KEY=os.environ.get("JWT_SECRET_KEY", "super-secret-jwt-key"),
-        
         # Database
-        SQLALCHEMY_DATABASE_URI=os.getenv("SQLALCHEMY_DATABASE_URI", "sqlite:///:memory:"),
+        SQLALCHEMY_DATABASE_URI=os.getenv(
+            "SQLALCHEMY_DATABASE_URI", "sqlite:///:memory:"
+        ),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SQLALCHEMY_ECHO=True,
         SQLALCHEMY_ENGINE_OPTIONS={
@@ -37,7 +37,6 @@ def create_app(test_config=None):
             "pool_size": 10,
             "max_overflow": 5,
         },
-        
         # JWT Configuration
         JWT_ALGORITHM="HS256",
         JWT_ACCESS_TOKEN_EXPIRES=timedelta(hours=1),
@@ -45,9 +44,8 @@ def create_app(test_config=None):
         JWT_TOKEN_LOCATION=["headers"],
         JWT_HEADER_NAME="Authorization",
         JWT_HEADER_TYPE="Bearer",
-        
         # Mail Configuration
-        MAIL_SERVER='smtp.gmail.com',
+        MAIL_SERVER="smtp.gmail.com",
         MAIL_PORT=587,
         MAIL_USE_TLS=True,
         MAIL_USE_SSL=False,
@@ -60,14 +58,14 @@ def create_app(test_config=None):
     # Override with test config if provided
     if test_config:
         app.config.from_mapping(test_config)
-    
+
     # Validate production configuration
-    if os.environ.get('FLASK_ENV') == 'production':
-        if app.config['JWT_SECRET_KEY'] == "super-secret-jwt-key":
+    if os.environ.get("FLASK_ENV") == "production":
+        if app.config["JWT_SECRET_KEY"] == "super-secret-jwt-key":
             raise ValueError("JWT_SECRET_KEY must be set in production")
-        if app.config['SECRET_KEY'] == "dev-secret-key":
+        if app.config["SECRET_KEY"] == "dev-secret-key":
             raise ValueError("SECRET_KEY must be set in production")
-        if app.config['SQLALCHEMY_DATABASE_URI'] == "sqlite:///:memory:":
+        if app.config["SQLALCHEMY_DATABASE_URI"] == "sqlite:///:memory:":
             raise ValueError("Database URI must be set in production")
 
     # Initialize extensions
@@ -78,9 +76,10 @@ def create_app(test_config=None):
     cors.init_app(app, resources={r"/*": {"origins": "*"}})
 
     # Register blueprints
-    app.register_blueprint(auth)
-    app.register_blueprint(admin)
-    app.register_blueprint(cloudnary)
+    app.register_blueprint(auth, url_prefix="/api/v1/auth")
+    app.register_blueprint(admin, url_prefix="/api/v1/admin")
+    app.register_blueprint(products, url_prefix="/api/v1/products")
+    app.register_blueprint(cloudnary, url_prefix="/api/v1/cloudinary")
 
     # JWT user lookup callback
     @jwt.user_lookup_loader
