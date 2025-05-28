@@ -80,6 +80,7 @@ def is_client_error():
     # 4xx
     pass
 
+
 def is_server_error():
     # 5xx
     pass
