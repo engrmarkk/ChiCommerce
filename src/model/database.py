@@ -21,10 +21,6 @@ def random_id():
     return "".join(random.choice(string.ascii_letters) for _ in range(10))
 
 
-
-
-
-
 # User Model
 class User(UserMixin, db.Model):
     __tablename__ = "users"
@@ -54,8 +50,9 @@ class User(UserMixin, db.Model):
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat(),
             "email_verified": self.email_verified,
-            "email": self.email
+            "email": self.email,
         }
+
 
 # Category Model
 class Category(db.Model):
@@ -65,11 +62,8 @@ class Category(db.Model):
     image = db.Column(db.String(500), nullable=False)
 
     def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "image": self.image
-        }
+        return {"id": self.id, "name": self.name, "image": self.image}
+
 
 # Products Model
 class Products(db.Model):
@@ -81,7 +75,7 @@ class Products(db.Model):
     color = db.Column(db.String(50), nullable=False)
     model = db.Column(db.String(50), nullable=False)
     out_of_stock = db.Column(db.Boolean, default=False)
-    category_id = db.Column(db.String(50), db.ForeignKey('category.id'), nullable=False)
+    category_id = db.Column(db.String(50), db.ForeignKey("category.id"), nullable=False)
     image = db.Column(db.String(500), nullable=False)
     specification_1 = db.Column(db.String(100), nullable=True)
     specification_2 = db.Column(db.String(100), nullable=True)
@@ -100,7 +94,7 @@ class Products(db.Model):
     specification_15 = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    category = db.relationship('Category', backref='products')
+    category = db.relationship("Category", backref="products")
 
     def to_dict(self):
         return {
@@ -129,22 +123,19 @@ class Products(db.Model):
             "specification_13": self.specification_13,
             "specification_14": self.specification_14,
             "specification_15": self.specification_15,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
-
-
 
 
 class Cart(db.Model):
     __tablename__ = "cart"
     id = db.Column(db.String(50), primary_key=True, default=random_id)
-    user_id = db.Column(db.String(50), db.ForeignKey('users.id'), nullable=False)
-    product_id = db.Column(db.String(50), db.ForeignKey('products.id'), nullable=False)
+    user_id = db.Column(db.String(50), db.ForeignKey("users.id"), nullable=False)
+    product_id = db.Column(db.String(50), db.ForeignKey("products.id"), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=0)
-    
-    product = db.relationship('Products', backref='cart')
-    
-    
+
+    product = db.relationship("Products", backref="cart")
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -153,5 +144,5 @@ class Cart(db.Model):
             "product_name": self.product.name,
             "quantity": self.quantity,
             "product_image": self.product.image,
-            "product_price": self.product.price
+            "product_price": self.product.price,
         }
