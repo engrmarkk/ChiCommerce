@@ -1,23 +1,22 @@
-from flask import Blueprint, request
-import cloudinary.uploader
 import cloudinary.api
-import src.cloudinary_config as cloudinary_config
-# from src.utils.utils import convert_binary, generate_signature, return_response
-from src.constants.http_status_codes import *
-import time
+import cloudinary.uploader
 import os
+import time
 import traceback
 from dotenv import load_dotenv
+from flask import Blueprint, request
+
+import src.cloudinary_config as cloudinary_config
+from src.constants.http_status_codes import *
+from src.utils.util import convert_binary, generate_signature, return_response
 
 cloudnary = Blueprint("cloudnary", __name__)
-
-ACCOUNT_PREFIX = "cloudinary"
 
 
 load_dotenv()
 
 
-@cloudnary.route(f"/{ACCOUNT_PREFIX}/manage-image", methods=["POST"])
+@cloudnary.route(f"/manage-image", methods=["POST"])
 def manage_file():
     try:
         data = request.get_json()
