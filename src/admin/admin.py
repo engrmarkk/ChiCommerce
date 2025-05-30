@@ -32,6 +32,7 @@ from flask_login import LoginManager, UserMixin, login_required, login_user, log
 from flask_mail import Message, Mail  # Import the mail instance here
 from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
+from http import HTTPStatus
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -42,11 +43,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from src.constants import http_status_codes
 from src.extentions.extensions import jwt, mail, cors  # Ensure this import is correct
+from src.logger import logger
 from src.model.database import db, User, Category, Products, Cart
-
-# Logging setup
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from src.utils import validate_password
 
 # Blueprint setup
 admin = Blueprint("admin", __name__, url_prefix="/admin")
@@ -57,76 +56,6 @@ cloudinary.config(
     api_key=os.getenv("CLOUDINARY_API_KEY"),
     api_secret=os.getenv("CLOUDINARY_API_SECRET"),
 )
-
-
-# Password validation function
-def validate_password(password):
-    if len(password) < 6:
-        return "Password must be at least 6 characters long."
-    if not re.search(r"[A-Z]", password):
-        return "Password must contain at least one uppercase letter."
-    if not re.search(r"[0-9]", password):
-        return "Password must contain at least one number."
-    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-        return "Password must contain at least one special character."
-    return None
-
-
-from functools import wraps
-from flask import jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from http import HTTPStatus
-
-
-from functools import wraps
-from flask import jsonify, request
-from flask_jwt_extended import (
-    jwt_required,
-    get_jwt_identity,
-    verify_jwt_in_request,
-    get_jwt,
-)
-from http import HTTPStatus
-
-
-def admin_required():
-    def wrapper(fn):
-        @wraps(fn)
-        def decorator(*args, **kwargs):
-            try:
-                print("Authorization Header:", request.headers.get("Authorization"))
-
-                verify_jwt_in_request()
-                jwt_data = get_jwt()
-                user_id = get_jwt_identity()
-
-                if not jwt_data.get("is_admin", False):
-                    return (
-                        jsonify({"message": "Admin access required"}),
-                        HTTPStatus.FORBIDDEN,
-                    )
-
-                user = User.query.get(user_id)
-                if not user:
-                    return jsonify({"message": "User not found"}), HTTPStatus.NOT_FOUND
-
-                if not hasattr(user, "is_admin") or not user.is_admin:
-                    return (
-                        jsonify({"message": "Admin privileges required"}),
-                        HTTPStatus.FORBIDDEN,
-                    )
-
-                return fn(*args, **kwargs)
-
-            except Exception as e:
-                return (
-                    jsonify({"message": "Authentication failed", "error": str(e)}),
-                    HTTPStatus.UNAUTHORIZED,
-                )
-
-        return decorator
-
-    return wrapper
 
 
 # Register Admin Endpoint
