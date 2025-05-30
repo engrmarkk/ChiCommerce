@@ -154,7 +154,7 @@ def register():
                 "email": email,
                 "subject": "Email Verification",
                 "template": "email_verification.html",
-                "verification_url": FRONTEND_VERIFICATION_URL + verification_url,
+                "verification_url": FRONTEND_VERIFICATION_URL + verification_token,
                 "name": f"{last_name} {first_name}",
             }
         )
