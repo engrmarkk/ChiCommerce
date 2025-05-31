@@ -30,7 +30,7 @@ def create_app(test_config=None):
             "SQLALCHEMY_DATABASE_URI", "sqlite:///:memory:"
         ),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        SQLALCHEMY_ECHO=True,
+        # SQLALCHEMY_ECHO=True,
         SQLALCHEMY_ENGINE_OPTIONS={
             "pool_pre_ping": True,
             "pool_recycle": 280,
@@ -52,7 +52,7 @@ def create_app(test_config=None):
         MAIL_USERNAME=os.environ.get("MAIL_USERNAME"),
         MAIL_PASSWORD=os.environ.get("MAIL_PASSWORD"),
         MAIL_DEFAULT_SENDER=os.environ.get("MAIL_USERNAME"),
-        MAIL_DEBUG=True,
+        MAIL_DEBUG=False,
     )
 
     # Override with test config if provided
