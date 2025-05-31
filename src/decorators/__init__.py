@@ -8,6 +8,8 @@ from flask_jwt_extended import (
 from functools import wraps
 from http import HTTPStatus
 
+from src.model.database import User
+
 
 def admin_required():
     def wrapper(fn):
