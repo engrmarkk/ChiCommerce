@@ -42,6 +42,7 @@ from urllib.parse import unquote
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from src.constants import http_status_codes
+from src.decorators import admin_required
 from src.extentions.extensions import jwt, mail, cors  # Ensure this import is correct
 from src.logger import logger
 from src.model.database import db, User, Category, Products, Cart
@@ -611,7 +612,7 @@ def add_product():
         model = data.get("model")
         image = data.get("image")
         category_id = data.get("category_id")
-        description = (data.get("description"),)
+        description = (data.get("description"))
 
         existing_product = Products.query.filter_by(name=name).first()
         if existing_product:
@@ -633,24 +634,12 @@ def add_product():
                 http_status_codes.HTTP_400_BAD_REQUEST,
             )
 
-        # Upload profile picture to Cloudinary
-        cloudinary_url = None
-        if image:
-            try:
-                upload_result = cloudinary.uploader.upload(image)
-                cloudinary_url = upload_result.get("secure_url")
-            except Exception as e:
-                return (
-                    jsonify({"message": f"Error uploading image: {str(e)}"}),
-                    http_status_codes.HTTP_400_BAD_REQUEST,
-                )
-
         new_product = Products(
             name=name,
             price=float(price),
             color=color,
             model=model,
-            image=cloudinary_url,
+            image=image,
             category_id=category_id,
             description=description,
             out_of_stock=data.get("out_of_stock", False),
