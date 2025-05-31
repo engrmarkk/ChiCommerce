@@ -1,9 +1,9 @@
 from flask import render_template
 from flask_mail import Message
-from logger import logger
 
 from src.constants.env_constant import SENDER_EMAIL, SENDER_NAME
 from src.extentions.extensions import mail
+from src.logger import logger
 
 
 def send_mail(data):
