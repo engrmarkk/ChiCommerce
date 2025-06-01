@@ -4,48 +4,27 @@ from flask_jwt_extended import (
     get_jwt_identity,
     verify_jwt_in_request,
     get_jwt,
+    current_user
 )
 from functools import wraps
 from http import HTTPStatus
 
-from src.model.database import User
-
 
 def admin_required():
-    def wrapper(fn):
+    def decorator(fn):
         @wraps(fn)
-        def decorator(*args, **kwargs):
+        def wrapped(*args, **kwargs):
             try:
-                print("Authorization Header:", request.headers.get("Authorization"))
-
-                verify_jwt_in_request()
-                jwt_data = get_jwt()
-                user_id = get_jwt_identity()
-
-                if not jwt_data.get("is_admin", False):
-                    return (
-                        jsonify({"message": "Admin access required"}),
-                        HTTPStatus.FORBIDDEN,
-                    )
-
-                user = User.query.get(user_id)
-                if not user:
-                    return jsonify({"message": "User not found"}), HTTPStatus.NOT_FOUND
-
-                if not hasattr(user, "is_admin") or not user.is_admin:
+                if not current_user.is_admin:
                     return (
                         jsonify({"message": "Admin privileges required"}),
                         HTTPStatus.FORBIDDEN,
                     )
-
                 return fn(*args, **kwargs)
-
             except Exception as e:
                 return (
                     jsonify({"message": "Authentication failed", "error": str(e)}),
                     HTTPStatus.UNAUTHORIZED,
                 )
-
-        return decorator
-
-    return wrapper
+        return wrapped
+    return decorator
