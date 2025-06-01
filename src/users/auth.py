@@ -331,6 +331,7 @@ def login():
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "email": user.email,
+                    "is_admin": user.is_admin
                 },
             }
         ),
@@ -341,10 +342,6 @@ def login():
 @auth.post("/request_reset_password")
 def request_reset_password():
     try:
-        mail = current_app.extensions.get("mail")
-        if not mail:
-            raise RuntimeError("Flask-Mail not initialized")
-
         email = request.json.get("email").lower()
 
         if not email:
