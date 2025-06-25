@@ -11,20 +11,12 @@ import validators
 from datetime import timedelta
 from dotenv import load_dotenv
 from flask import (
-    Flask,
     request,
-    session,
-    url_for,
-    redirect,
     Blueprint,
     jsonify,
-    current_app,
 )
 from flask_jwt_extended import (
-    create_access_token,
-    create_refresh_token,
     jwt_required,
-    get_jwt_identity,
     current_user,
 )
 from flask_jwt_extended.exceptions import NoAuthorizationError, InvalidHeaderError
@@ -249,7 +241,10 @@ def add_product():
         category_id = data.get("category_id")
         description = data.get("description")
 
-        existing_product = Products.query.filter_by(name=name).first()
+        existing_product = Products.query.filter(
+            Products.name.ilike(name),
+            Products.category_id == category_id,
+        ).first()
         if existing_product:
             return (
                 jsonify({"error": "Product already exists"}),
@@ -467,7 +462,7 @@ def get_all_categories():
                 http_status_codes.HTTP_401_UNAUTHORIZED,
             )
 
-        categories = Category.query.all()
+        categories = Category.query.order_by(Category.name.asc()).all()
         return (
             jsonify(
                 {
