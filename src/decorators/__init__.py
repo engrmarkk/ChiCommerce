@@ -4,7 +4,7 @@ from flask_jwt_extended import (
     get_jwt_identity,
     verify_jwt_in_request,
     get_jwt,
-    current_user
+    current_user,
 )
 from functools import wraps
 from http import HTTPStatus
@@ -26,5 +26,7 @@ def admin_required():
                     jsonify({"message": "Authentication failed", "error": str(e)}),
                     HTTPStatus.UNAUTHORIZED,
                 )
+
         return wrapped
+
     return decorator
