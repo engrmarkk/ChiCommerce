@@ -145,7 +145,9 @@ def delete_category(category_id):
                 redis_conn.set(category_id, 1, expire=10)
                 return (
                     jsonify(
-                        {"message": "Deleting this category will delete the products under it, click the button again if you want to proceed"}
+                        {
+                            "message": "Deleting this category will delete the products under it, click the button again if you want to proceed"
+                        }
                     ),
                     http_status_codes.HTTP_409_CONFLICT,
                 )
@@ -245,7 +247,7 @@ def add_product():
         model = data.get("model")
         image = data.get("image")
         category_id = data.get("category_id")
-        description = (data.get("description"))
+        description = data.get("description")
 
         existing_product = Products.query.filter_by(name=name).first()
         if existing_product:
