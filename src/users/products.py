@@ -23,6 +23,9 @@ import src.cloudinary_config
 from src.constants import http_status_codes
 from src.logger import logger
 from src.model.database import db, User, Products, Category, Cart
+from src.utils.util import return_response
+from src.constants.status_message import StatusMessage
+from src.constants.env_constant import EXCEPTION_MESSAGE
 
 # from src.services.mail import send_mail
 
@@ -45,27 +48,27 @@ def get_all_products():
             .paginate(page=page, per_page=per_page, error_out=False)
         )
 
-        return (
-            jsonify(
-                {
-                    "message": "Products retrieved successfully",
-                    "products": [product.to_dict() for product in products_query.items],
-                    "total_pages": products_query.pages,
-                    "total_items": products_query.total,
-                    "page": page,
-                    "per_page": per_page,
-                    "has_next": products_query.has_next,
-                    "has_prev": products_query.has_prev,
-                }
-            ),
+        return return_response(
             http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Products retrieved successfully",
+            **{
+                "products": [product.to_dict() for product in products_query.items],
+                "total_pages": products_query.pages,
+                "total_items": products_query.total,
+                "page": page,
+                "per_page": per_page,
+                "has_next": products_query.has_next,
+                "has_prev": products_query.has_prev,
+            },
         )
 
     except Exception as e:
-        logger.error(f"Error retrieving products: {str(e)}")
-        return (
-            jsonify({"message": "Network Error"}),
+        logger.exception(e)
+        return return_response(
             http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
         )
 
 
@@ -78,77 +81,76 @@ def get_single_product(id):
         #     return jsonify({"message": "User not found"}), http_status_codes.HTTP_404_NOT_FOUND
         product = Products.query.filter_by(id=id).first()
         if not product:
-            return (
-                jsonify({"message": "Product not found"}),
+            return return_response(
                 http_status_codes.HTTP_404_NOT_FOUND,
+                status=StatusMessage.FAILED,
+                message="Product not found",
             )
-        return (
-            jsonify(
-                {
-                    "message": "Product retrieved successfully",
-                    "product": product.to_dict(),
-                }
-            ),
+
+        return return_response(
             http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Product retrieved successfully",
+            product=product.to_dict(),
         )
+
     except Exception as e:
-        logger.error(f"Error retrieving product: {str(e)}")
-        return (
-            jsonify({"message": "Network Error"}),
+        logger.exception(e)
+        return return_response(
             http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
         )
 
 
 @products.get("/search")
 def search():
-    query = request.args.get("query", "")
-    per_page = 10  # Fixed number of items per page
+    try:
+        query = request.args.get("query", "")
+        per_page = 10  # Fixed number of items per page
 
-    # Fetch products that match the query across multiple fields
-    search_term = f"%{query}%"
-    products_query = Products.query.filter(
-        db.or_(
-            Products.name.ilike(search_term),
-            Products.description.ilike(search_term),
-            Products.model.ilike(search_term),
-            Products.color.ilike(search_term),
+        # Fetch products that match the query across multiple fields
+        search_term = f"%{query}%"
+        products_query = Products.query.filter(
             db.or_(
-                *[
-                    getattr(Products, f"specification_{i}").ilike(search_term)
-                    for i in range(1, 16)
-                ]
-            ),  # Search all 15 specification fields
+                Products.name.ilike(search_term),
+                Products.description.ilike(search_term),
+                Products.model.ilike(search_term),
+                Products.color.ilike(search_term),
+                db.or_(
+                    *[
+                        getattr(Products, f"specification_{i}").ilike(search_term)
+                        for i in range(1, 16)
+                    ]
+                ),  # Search all 15 specification fields
+            )
         )
-    )
 
-    # Get total count to determine if pagination is needed
-    total_products = products_query.count()
+        # Get total count to determine if pagination is needed
+        total_products = products_query.count()
 
-    # If no products or few products, return all without pagination
-    if total_products <= per_page:
-        products = products_query.all()
+        # If no products or few products, return all without pagination
+        if total_products <= per_page:
+            products = products_query.all()
+            response = {
+                "products": [
+                    product.to_dict() for product in products
+                ],  # Use to_dict() for full specs
+                "message": (
+                    f"{total_products} product(s) found"
+                    if total_products > 0
+                    else f"No products found matching '{query}'"
+                ),
+            }
+            return jsonify(response), http_status_codes.HTTP_200_OK
+
+        # Paginate products if more than per_page
+        products_paginated = products_query.paginate(
+            page=1, per_page=per_page, error_out=False
+        )
+
         response = {
-            "products": [
-                product.to_dict() for product in products
-            ],  # Use to_dict() for full specs
-            "message": (
-                f"{total_products} product(s) found"
-                if total_products > 0
-                else f"No products found matching '{query}'"
-            ),
-        }
-        return jsonify(response), http_status_codes.HTTP_200_OK
-
-    # Paginate products if more than per_page
-    products_paginated = products_query.paginate(
-        page=1, per_page=per_page, error_out=False
-    )
-
-    response = {
-        "products": [
-            product.to_dict() for product in products_paginated.items
-        ],  # Full specs
-        "pagination": {
+            "products": [product.to_dict() for product in products_paginated.items],
             "page": products_paginated.page,
             "total_pages": products_paginated.pages,
             "total_items": products_paginated.total,
@@ -160,10 +162,21 @@ def search():
             "prev_page": (
                 products_paginated.prev_num if products_paginated.has_prev else None
             ),
-        },
-    }
+        }
 
-    return jsonify(response), http_status_codes.HTTP_200_OK
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Products retrieved successfully",
+            **response,
+        )
+    except Exception as e:
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
 
 
 @products.post("/filter-products")
@@ -176,7 +189,8 @@ def filter_products():
         name = filters.get("name")
         model = filters.get("model")
         color = filters.get("color")
-        price = filters.get("price")  # Must be a dict with min and/or max
+        min_price = filters.get("min_price")
+        max_price = filters.get("max_price")
 
         # Start with base query
         products_query = Products.query
@@ -188,26 +202,15 @@ def filter_products():
             products_query = products_query.filter(Products.model.ilike(f"%{model}%"))
         if color:
             products_query = products_query.filter(Products.color.ilike(f"%{color}%"))
-        if price:
-            if not isinstance(price, dict):
-                return (
-                    jsonify(
-                        {"message": "Price must be an object with 'min' and/or 'max'"}
-                    ),
-                    http_status_codes.HTTP_400_BAD_REQUEST,
-                )
 
-            min_price = price.get("min")
-            max_price = price.get("max")
-
-            if min_price is not None:
-                products_query = products_query.filter(
-                    Products.price >= float(min_price)
-                )
-            if max_price is not None:
-                products_query = products_query.filter(
-                    Products.price <= float(max_price)
-                )
+        if min_price:
+            products_query = products_query.filter(
+                Products.price >= float(min_price)
+            )
+        if max_price:
+            products_query = products_query.filter(
+                Products.price <= float(max_price)
+            )
 
         # Execute the query
         products = products_query.all()
@@ -227,13 +230,19 @@ def filter_products():
                 "message": f"{total_products} product(s) found",
             }
 
-        return jsonify(response), http_status_codes.HTTP_200_OK
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Products retrieved successfully",
+            **response,
+        )
 
     except Exception as e:
-        logger.error(f"filter products error: {str(e)}")
-        return (
-            jsonify({"message": "Network Error"}),
+        logger.exception(e)
+        return return_response(
             http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
         )
 
 
@@ -254,22 +263,19 @@ def product_by_category(category_id):
             .all()
         )
 
-        return (
-            jsonify(
-                {
-                    "message": "Products retrieved successfully",
-                    "gadgets": [gadget.to_dict() for gadget in products],
-                    # "image": gadgets.image,
-                }
-            ),
+        return return_response(
             http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Products retrieved successfully",
+            gadgets=[gadget.to_dict() for gadget in products],
         )
 
     except Exception as e:
-        logger.error(f"product_by_category error: {str(e)}")
-        return (
-            jsonify({"message": "Network Error"}),
+        logger.exception(e)
+        return return_response(
             http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
         )
 
 
@@ -279,20 +285,19 @@ def all_categories():
     try:
         categories = Category.query.all()
 
-        return (
-            jsonify(
-                {
-                    "message": "Categories retrieved successfully",
-                    "categories": [category.to_dict() for category in categories],
-                }
-            ),
+        return return_response(
             http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Categories retrieved successfully",
+            categories=[category.to_dict() for category in categories],
         )
 
     except Exception as e:
-        return (
-            jsonify({"message": "Network Error"}),
+        logger.exception(e)
+        return return_response(
             http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
         )
 
 
@@ -306,24 +311,27 @@ def add_to_cart():
         quantity = data.get("quantity")
 
         if not product_id or not quantity:
-            return (
-                jsonify({"message": "Product and quantity are required"}),
+            return return_response(
                 http_status_codes.HTTP_400_BAD_REQUEST,
+                status=StatusMessage.FAILED,
+                message="Product and quantity are required",
             )
 
         # Check if the product exists
         product = Products.query.get(product_id)
         if not product:
-            return (
-                jsonify({"message": "Product not found"}),
+            return return_response(
                 http_status_codes.HTTP_404_NOT_FOUND,
+                status=StatusMessage.FAILED,
+                message="Product not found",
             )
 
         # Check if the product is available
         if product.out_of_stock:
-            return (
-                jsonify({"message": "Product is not available"}),
+            return return_response(
                 http_status_codes.HTTP_400_BAD_REQUEST,
+                status=StatusMessage.FAILED,
+                message="Product is not available",
             )
 
         # Add the product to the cart
@@ -331,21 +339,19 @@ def add_to_cart():
         db.session.add(cart)
         db.session.commit()
 
-        return (
-            jsonify(
-                {
-                    "message": "Product added to cart successfully",
-                    "product": product.to_dict(),
-                }
-            ),
+        return return_response(
             http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Product added to cart successfully",
+            product=product.to_dict(),
         )
 
     except Exception as e:
-        logger.error(f"Error adding product to cart: {str(e)}")
-        return (
-            jsonify({"message": "Network Error"}),
+        logger.exception(e)
+        return return_response(
             http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
         )
 
 
@@ -356,9 +362,11 @@ def get_all_cart_items():
     try:
         cart_items = Cart.query.filter_by(user_id=current_user.id).all()
         if not cart_items:
-            return (
-                jsonify({"message": "Your cart is empty", "cart_items": []}),
+            return return_response(
                 http_status_codes.HTTP_200_OK,
+                status=StatusMessage.SUCCESS,
+                message="Your cart is empty",
+                cart_items=[],
             )
 
         consolidated_items = {}
@@ -368,16 +376,19 @@ def get_all_cart_items():
             else:
                 consolidated_items[item.product_id] = item.to_dict()
 
-        return (
-            jsonify({"cart_items": list(consolidated_items.values())}),
+        return return_response(
             http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Cart items retrieved successfully",
+            cart_items=list(consolidated_items.values()),
         )
 
     except Exception as e:
-        logger.error(f"Error getting cart items: {str(e)}")
-        return (
-            jsonify({"message": "Network Error"}),
+        logger.exception(e)
+        return return_response(
             http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
         )
 
 
@@ -391,39 +402,39 @@ def update_cart():
         quantity = data.get("quantity")
 
         if not item_id or quantity is None:
-            return (
-                jsonify({"message": "Item ID and quantity are required"}),
+            return return_response(
                 http_status_codes.HTTP_400_BAD_REQUEST,
+                status=StatusMessage.FAILED,
+                message="Item ID and quantity are required",
             )
 
         cart_item = Cart.query.filter_by(id=item_id, user_id=current_user.id).first()
 
         if not cart_item:
-            return (
-                jsonify({"message": "Cart item not found"}),
+            return return_response(
                 http_status_codes.HTTP_404_NOT_FOUND,
+                status=StatusMessage.FAILED,
+                message="Cart item not found",
             )
 
         # Update the quantity
         cart_item.quantity = quantity
         db.session.commit()
 
-        return (
-            jsonify(
-                {
-                    "message": "Cart item updated successfully",
-                    "cart_item": cart_item.to_dict(),
-                }
-            ),
+        return return_response(
             http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Cart item updated successfully",
+            cart_item=cart_item.to_dict(),
         )
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error updating cart item: {str(e)}")
-        return (
-            jsonify({"message": "Network Error"}),
+        logger.exception(e)
+        return return_response(
             http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
         )
 
 
@@ -435,23 +446,26 @@ def remove_from_cart(item_id):
         cart_item = Cart.query.filter_by(id=item_id, user_id=current_user.id).first()
 
         if not cart_item:
-            return (
-                jsonify({"message": "Cart item not found"}),
+            return return_response(
                 http_status_codes.HTTP_404_NOT_FOUND,
+                status=StatusMessage.FAILED,
+                message="Cart item not found",
             )
 
         db.session.delete(cart_item)
         db.session.commit()
 
-        return (
-            jsonify({"message": f" Item removed successfully"}),
+        return return_response(
             http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message=f" Item removed successfully",
         )
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error removing cart item: {str(e)}")
-        return (
-            jsonify({"message": "Network Error"}),
+        logger.exception(e)
+        return return_response(
             http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
         )
