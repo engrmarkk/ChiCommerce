@@ -4,8 +4,6 @@ import hashlib
 import hmac
 import re
 import time
-import uuid
-from flask import jsonify
 from flask import jsonify
 from flask_jwt_extended import create_access_token
 from io import BytesIO
@@ -52,3 +50,7 @@ def generate_signature(params_to_sign, api_secret):
     except Exception as e:
         logger.exception(e)
         return None
+
+
+def format_datetime(datetime_obj, format="%Y-%m-%d %H:%M:%S"):
+    return datetime_obj.strftime(format) if datetime_obj else None
