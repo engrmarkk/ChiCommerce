@@ -2,13 +2,13 @@ import cloudinary.api
 import cloudinary.uploader
 import os
 import time
-import traceback
 from dotenv import load_dotenv
 from flask import Blueprint, request
 
 import src.cloudinary_config as cloudinary_config
 from src.constants.http_status_codes import *
 from src.utils.util import convert_binary, generate_signature, return_response
+from src.logger import logger
 
 cloudnary = Blueprint("cloudnary", __name__)
 
@@ -25,7 +25,7 @@ def manage_file():
         action = data.get("action", None)
         folder = data.get("folder", None)
 
-        print(data, "data")
+        logger.info(data)
 
         cloud_name = (os.environ.get("CLOUD_NAME"),)
         api_key = (os.environ.get("API_KEY"),)
@@ -35,9 +35,9 @@ def manage_file():
         api_key = str(api_key[0]) if isinstance(api_key, tuple) else api_key
         api_secret = str(api_secret[0]) if isinstance(api_secret, tuple) else api_secret
 
-        print("cloud_name", cloud_name)
-        print("api_key", api_key)
-        print("api_secret", api_secret)
+        logger.info(cloud_name)
+        logger.info(api_key)
+        logger.info(api_secret)
 
         if not action:
             return return_response(
@@ -59,7 +59,7 @@ def manage_file():
 
         file = convert_binary(image) if action == "upload" else None
 
-        print("file", file)
+        logger.info(file)
 
         params_to_sign = {
             "public_id": public_id,
@@ -69,15 +69,15 @@ def manage_file():
 
         params_to_sign["signature"] = signature
 
-        print(signature, "signature from cloudinary")
-        print(params_to_sign, "params_to_sign from cloudinary")
+        logger.info(signature)
+        logger.info(params_to_sign)
 
         params_to_sign["folder"] = folder if folder else None
 
         if action == "upload":
-            print(action, "action from cloudinary")
+            logger.info(action)
             result = cloudinary.uploader.upload(file, **params_to_sign)
-            print(result, "result from cloudinary")
+            logger.info(result)
             img_url = result["secure_url"]
 
             return return_response(
@@ -94,8 +94,8 @@ def manage_file():
                 f"{folder}/{public_id}" if folder else public_id
             )
             result = cloudinary.uploader.destroy(**params_to_sign)
-            print(params_to_sign, "pparams")
-            print(result, "result from cloudinary destroy")
+            logger.info(params_to_sign)
+            logger.info(result)
 
             return (
                 return_response(
@@ -115,14 +115,13 @@ def manage_file():
             )
 
     except KeyError as e:
-        print(e, "error from cloudinary key error")
+        logger.exception(e)
         return return_response(
             HTTP_400_BAD_REQUEST,
             message="All fields are required",
         )
     except Exception as e:
-        print(traceback.format_exc(), "error from cloudinary exception")
-        print(e, "error from cloudinary")
+        logger.exception(e)
         return return_response(
             HTTP_500_INTERNAL_SERVER_ERROR,
             message="Network error",
