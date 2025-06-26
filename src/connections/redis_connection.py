@@ -1,6 +1,6 @@
 import redis
 
-from src.constants.env_constant import REDIS_URL
+from src.constants.env_constant import REDIS_URL, REDIS_EXPIRE_TIME
 from src.logger import logger
 
 
@@ -17,7 +17,7 @@ class RedisConnection:
     def close_connection(self):
         self.connection.close()
 
-    def set(self, key, value, expire=None):
+    def set(self, key, value, expire=REDIS_EXPIRE_TIME):
         return self.connection.set(key, value, ex=expire)
 
     def get(self, key):
