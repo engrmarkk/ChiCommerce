@@ -19,6 +19,7 @@ from flask import (
     Blueprint,
     jsonify,
     current_app,
+    render_template
 )
 from flask_jwt_extended import (
     create_access_token,
@@ -42,6 +43,7 @@ from src.constants.env_constant import (
     FRONTEND_VERIFICATION_URL,
     FRONTEND_LOGIN_URL,
     EXCEPTION_MESSAGE,
+    FRONTEND_HOMEPAGE
 )
 from src.logger import logger
 from src.model.database import db, User, Products, Category, Cart
@@ -52,7 +54,7 @@ from src.utils import (
     validate_phone_number,
     generate_otp,
 )
-from src.utils.util import return_response
+from src.utils.util import return_response, data_cache, return_host_url
 from src.constants.status_message import StatusMessage
 
 # from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, current_user
@@ -61,16 +63,6 @@ load_dotenv()
 
 
 auth = Blueprint("auth", __name__)
-
-
-# Test
-@auth.get("/test")
-def test():
-    return return_response(
-        http_status_codes.HTTP_200_OK,
-        status=StatusMessage.SUCCESS,
-        message="Test successful",
-    )
 
 
 @auth.post("/register_user")
@@ -190,7 +182,7 @@ def register():
                 "email": email,
                 "subject": "Email Verification",
                 "template": "email_verification.html",
-                "verification_url": FRONTEND_VERIFICATION_URL + verification_token,
+                "verification_url": f"{return_host_url(request.host_url)}api/v1/auth/verify/{verification_token}",
                 "name": f"{last_name} {first_name}",
             }
         )
@@ -233,7 +225,7 @@ def verify_email(token):
             )
 
         if user.email_verified:
-            return redirect("https://servicenest.netlify.app/login")
+            return redirect(FRONTEND_LOGIN_URL)
 
         # Validate the token against the database
         logger.info(f"Stored token: {user.verification_token}")  # Debug
@@ -241,11 +233,7 @@ def verify_email(token):
 
         if user.verification_token != token:
             logger.info("Invalid or expired token.")
-            return return_response(
-                http_status_codes.HTTP_400_BAD_REQUEST,
-                status=StatusMessage.FAILED,
-                message="Invalid or expired token.",
-            )
+            return render_template("invalid_token.html", homepage_url=FRONTEND_HOMEPAGE)
 
         logger.info(f"User {user.email} verification status: {user.email_verified}")
 
@@ -326,7 +314,7 @@ def resend_verification():
             "email": email,
             "subject": "Email Verification",
             "template": "email_verification.html",
-            "verification_url": FRONTEND_VERIFICATION_URL + new_token,
+            "verification_url": f"{return_host_url(request.host_url)}api/v1/auth/verify/{new_token}",
             "name": f"{user.last_name} {user.first_name}",
         }
     )
@@ -340,40 +328,37 @@ def resend_verification():
 
 @auth.post("/login")
 def login():
-    email = request.json.get("email", "")
-    password = request.json.get("password", "")
+    try:
+        email = request.json.get("email", "")
+        password = request.json.get("password", "")
 
-    if not email or not password:
-        return return_response(
-            http_status_codes.HTTP_400_BAD_REQUEST,
-            status=StatusMessage.FAILED,
-            message="Email and password are required",
-        )
+        if not email or not password:
+            return return_response(
+                http_status_codes.HTTP_400_BAD_REQUEST,
+                status=StatusMessage.FAILED,
+                message="Email and password are required",
+            )
 
-    user = User.query.filter_by(email=email.lower()).first()
+        user = User.query.filter_by(email=email.lower()).first()
 
-    if not user or not check_password_hash(user.password, password):
-        return return_response(
-            http_status_codes.HTTP_401_UNAUTHORIZED,
-            status=StatusMessage.FAILED,
-            message="Invalid email or password",
-        )
+        if not user or not check_password_hash(user.password, password):
+            return return_response(
+                http_status_codes.HTTP_401_UNAUTHORIZED,
+                status=StatusMessage.FAILED,
+                message="Invalid email or password",
+            )
 
-    if not user.email_verified:
-        return return_response(
-            http_status_codes.HTTP_401_UNAUTHORIZED,
-            status=StatusMessage.FAILED,
-            message="Email is not verified",
-        )
+        if not user.email_verified:
+            return return_response(
+                http_status_codes.HTTP_401_UNAUTHORIZED,
+                status=StatusMessage.FAILED,
+                message="Email is not verified",
+            )
 
-    access_token = create_access_token(identity=user.id, fresh=True)
-    refresh_token = create_refresh_token(identity=user.id)
+        access_token = create_access_token(identity=user.id, fresh=True)
+        refresh_token = create_refresh_token(identity=user.id)
 
-    return return_response(
-        http_status_codes.HTTP_200_OK,
-        status=StatusMessage.SUCCESS,
-        message="Login successful",
-        **{
+        res_data = {
             "access_token": access_token,
             "refresh_token": refresh_token,
             "user": {
@@ -384,8 +369,23 @@ def login():
                 "email": user.email,
                 "is_admin": user.is_admin,
             },
-        },
-    )
+        }
+
+        res_data = data_cache(f"login:user:{user.id}", res_data, 1800)
+
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Login successful",
+            **res_data,
+        )
+    except Exception as e:
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
 
 
 @auth.post("/request_reset_password")
