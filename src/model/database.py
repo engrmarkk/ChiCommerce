@@ -90,8 +90,8 @@ class Products(db.Model):
         "ProductImages", backref="products", cascade="all, delete-orphan"
     )
 
-    def to_dict(self):
-        return {
+    def to_dict(self, all_products=False):
+        returned_dict = {
             "id": self.id,
             "name": self.name,
             "description": self.description,
@@ -103,9 +103,11 @@ class Products(db.Model):
             "category_name": self.category.name,
             "image": self.image,
             "created_at": format_datetime(self.created_at),
-            "specifications": [spec.to_dict() for spec in self.specification],
-            "product_images": [image.to_dict() for image in self.product_images],
         }
+        if all_products:
+            returned_dict["specifications"] = [spec.to_dict() for spec in self.specification]
+            returned_dict["product_images"] = [image.to_dict() for image in self.product_images]
+        return returned_dict
 
 
 # product images
