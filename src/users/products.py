@@ -17,13 +17,15 @@ from flask import (
 from flask_jwt_extended import (
     jwt_required,
     current_user,
+    get_jwt_identity,
+    verify_jwt_in_request
 )
 from sqlalchemy import or_
 
 import src.cloudinary_config
 from src.constants import http_status_codes
 from src.logger import logger
-from src.model.database import db, User, Products, Category, Cart, Specification
+from src.model.database import db, User, Products, Category, Cart, Specification, Favorite
 from src.utils.util import return_response, data_cache
 from src.constants.status_message import StatusMessage
 from src.constants.env_constant import EXCEPTION_MESSAGE
@@ -34,11 +36,21 @@ from src.constants.env_constant import EXCEPTION_MESSAGE
 products = Blueprint("products", __name__, url_prefix="/products")
 
 
+def get_user_id():
+    try:
+        verify_jwt_in_request(optional=True)
+        user_id = get_jwt_identity()
+    except Exception:
+        user_id = None
+
+    return user_id
+
 # Get all products paginated
 @products.get("/get_all_products")
 # @jwt_required()
 def get_all_products():
     try:
+        user_id = get_user_id()
         filters = request.args
         page = int(filters.get("page", 1))
         per_page = int(filters.get("per_page", 10))
@@ -71,7 +83,7 @@ def get_all_products():
         res_data = data_cache(
             f"products:all:{page}:{per_page}:{name}:{model}:{color}:{min_price}:{max_price}:{category_id}:{sort_by}:{sort_order}",
             {
-                "products": [product.to_dict() for product in products_query.items],
+                "products": [product.to_dict(user_id=user_id) for product in products_query.items],
                 "total_pages": products_query.pages,
                 "total_items": products_query.total,
                 "page": page,
@@ -103,6 +115,7 @@ def get_all_products():
 # @jwt_required()
 def get_single_product(id):
     try:
+        user_id = get_user_id()
         # if not current_user:
         #     return jsonify({"message": "User not found"}), http_status_codes.HTTP_404_NOT_FOUND
         product = Products.query.filter_by(id=id).first()
@@ -113,7 +126,7 @@ def get_single_product(id):
                 message="Product not found",
             )
 
-        res_data = data_cache(f"products:single:{id}", product.to_dict(all_products=True), 60)
+        res_data = data_cache(f"products:single:{id}", product.to_dict(all_products=True, user_id=user_id), 60)
 
         return return_response(
             http_status_codes.HTTP_200_OK,
@@ -331,6 +344,99 @@ def related_products(id):
             **{"related_products": res_data},
         )
 
+    except Exception as e:
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+
+# favotite and unfavorite a product
+@products.post("/favorite")
+@jwt_required()
+def favorite():
+    try:
+        data = request.get_json()
+        product_id = data.get("product_id")
+
+        if not product_id:
+            return return_response(
+                http_status_codes.HTTP_400_BAD_REQUEST,
+                status=StatusMessage.FAILED,
+                message="Product ID is required",
+            )
+        
+        if not Products.query.filter_by(id=product_id).first():
+            return return_response(
+                http_status_codes.HTTP_404_NOT_FOUND,
+                status=StatusMessage.FAILED,
+                message="Product not found",
+            )
+
+        favorite = Favorite.query.filter_by(user_id=current_user.id, product_id=product_id).first()
+        if favorite:
+            db.session.delete(favorite)
+            db.session.commit()
+            return return_response(
+                http_status_codes.HTTP_200_OK,
+                status=StatusMessage.SUCCESS,
+                message="Product unfavorited successfully",
+            )
+
+        favorite = Favorite(user_id=current_user.id, product_id=product_id)
+        db.session.add(favorite)
+        db.session.commit()
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Product favorited successfully",
+        )
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+
+# get favorited products (desc order)
+@products.get("/get_favorites")
+@jwt_required()
+def get_favorites():
+    try:
+        favorites = Favorite.query.filter_by(user_id=current_user.id).order_by(Favorite.created_at.desc()).all()
+        res_data = data_cache(f"products:favorites:{current_user.id}", [f.to_dict() for f in favorites], 60)
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Favorites retrieved successfully",
+            **{"favorites": res_data},
+        )
+    except Exception as e:
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+
+# get trending products, the latest 8 products added
+@products.get("/get_trending")
+def get_trending():
+    try:
+        products = Products.query.order_by(Products.created_at.desc()).limit(8).all()
+        res_data = data_cache(f"products:trending", [p.to_dict() for p in products], 60)
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Trending products retrieved successfully",
+            **{"trending": res_data},
+        )
     except Exception as e:
         logger.exception(e)
         return return_response(
