@@ -17,6 +17,11 @@ def update_product_specifications(product_id, specifications):
                 )
                 db.session.commit()
         else:
+            if Specification.query.filter(
+                Specification.name == specification["name"],
+                Specification.product_id == product_id,
+            ).first():
+                continue
             specs_obj = Specification(
                 name=specification["name"], description=specification["description"]
             )
