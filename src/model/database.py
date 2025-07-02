@@ -8,7 +8,7 @@ import datetime
 from flask_sqlalchemy import SQLAlchemy
 import random
 import string
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Index
 from sqlalchemy.orm import relationship
 from flask_login import UserMixin
 from src.utils.util import format_datetime
@@ -90,7 +90,11 @@ class Products(db.Model):
         "ProductImages", backref="products", cascade="all, delete-orphan"
     )
 
-    def to_dict(self, all_products=False):
+    favorites = db.relationship(
+        "Favorite", backref="products", cascade="all, delete-orphan"
+    )
+
+    def to_dict(self, user_id=None, all_products=False):
         returned_dict = {
             "id": self.id,
             "name": self.name,
@@ -102,8 +106,13 @@ class Products(db.Model):
             "category_id": self.category_id,
             "category_name": self.category.name,
             "image": self.image,
+            "favorited": False,
             "created_at": format_datetime(self.created_at),
         }
+        if user_id is not None:
+            returned_dict["favorited"] = any(fav.user_id == user_id for fav in self.favorites)
+        else:
+            returned_dict["favorited"] = False
         if all_products:
             returned_dict["specifications"] = [spec.to_dict() for spec in self.specification]
             returned_dict["product_images"] = [image.to_dict() for image in self.product_images]
@@ -152,4 +161,30 @@ class Cart(db.Model):
             "quantity": self.quantity,
             "product_image": self.product.image,
             "product_price": self.product.price,
+        }
+
+
+# favorite
+class Favorite(db.Model):
+    __tablename__ = "favorite"
+    id = db.Column(db.String(50), primary_key=True, default=random_id)
+    user_id = db.Column(db.String(50), db.ForeignKey("users.id"), nullable=False)
+    product_id = db.Column(db.String(50), db.ForeignKey("products.id"), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+    # create index
+    __table_args__ = (
+        Index(
+            "user_product_index",
+            "user_id",
+            "product_id",
+            unique=True,
+        ),
+    )
+
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "product": self.products.to_dict(),
         }
