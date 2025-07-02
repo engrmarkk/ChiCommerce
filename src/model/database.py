@@ -9,6 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 import random
 import string
 from sqlalchemy import ForeignKey, Index
+from sqlalchemy.sql import exists
 from sqlalchemy.orm import relationship
 from flask_login import UserMixin
 from src.utils.util import format_datetime
@@ -94,6 +95,16 @@ class Products(db.Model):
         "Favorite", backref="products", cascade="all, delete-orphan"
     )
 
+    @classmethod
+    def is_favorited_by(cls, product_id, user_id):
+        return db.session.query(
+            exists().where(
+                Favorite.product_id == product_id,
+            ).where(
+                Favorite.user_id == user_id
+            )
+        ).scalar()
+
     def to_dict(self, user_id=None, all_products=False):
         returned_dict = {
             "id": self.id,
@@ -106,11 +117,10 @@ class Products(db.Model):
             "category_id": self.category_id,
             "category_name": self.category.name,
             "image": self.image,
-            "favorited": False,
             "created_at": format_datetime(self.created_at),
         }
         if user_id is not None:
-            returned_dict["favorited"] = any(fav.user_id == user_id for fav in self.favorites)
+            returned_dict["favorited"] = Products.is_favorited_by(self.id, user_id)
         else:
             returned_dict["favorited"] = False
         if all_products:
