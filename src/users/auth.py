@@ -19,7 +19,7 @@ from flask import (
     Blueprint,
     jsonify,
     current_app,
-    render_template
+    render_template,
 )
 from flask_jwt_extended import (
     create_access_token,
@@ -43,7 +43,7 @@ from src.constants.env_constant import (
     FRONTEND_VERIFICATION_URL,
     FRONTEND_LOGIN_URL,
     EXCEPTION_MESSAGE,
-    FRONTEND_HOMEPAGE
+    FRONTEND_HOMEPAGE,
 )
 from src.logger import logger
 from src.model.database import db, User, Products, Category, Cart
@@ -343,14 +343,14 @@ def login():
 
         if not user or not check_password_hash(user.password, password):
             return return_response(
-                http_status_codes.HTTP_401_UNAUTHORIZED,
+                http_status_codes.HTTP_400_BAD_REQUEST,
                 status=StatusMessage.FAILED,
                 message="Invalid email or password",
             )
 
         if not user.email_verified:
             return return_response(
-                http_status_codes.HTTP_401_UNAUTHORIZED,
+                http_status_codes.HTTP_400_BAD_REQUEST,
                 status=StatusMessage.FAILED,
                 message="Email is not verified",
             )
