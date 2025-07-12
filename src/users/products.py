@@ -18,14 +18,22 @@ from flask_jwt_extended import (
     jwt_required,
     current_user,
     get_jwt_identity,
-    verify_jwt_in_request
+    verify_jwt_in_request,
 )
 from sqlalchemy import or_
 
 import src.cloudinary_config
 from src.constants import http_status_codes
 from src.logger import logger
-from src.model.database import db, User, Products, Category, Cart, Specification, Favorite
+from src.model.database import (
+    db,
+    User,
+    Products,
+    Category,
+    Cart,
+    Specification,
+    Favorite,
+)
 from src.utils.util import return_response, data_cache
 from src.constants.status_message import StatusMessage
 from src.constants.env_constant import EXCEPTION_MESSAGE
@@ -44,6 +52,7 @@ def get_user_id():
         user_id = None
 
     return user_id
+
 
 # Get all products paginated
 @products.get("/get_all_products")
@@ -83,7 +92,9 @@ def get_all_products():
         res_data = data_cache(
             f"products:all:{page}:{per_page}:{name}:{model}:{color}:{min_price}:{max_price}:{category_id}:{sort_by}:{sort_order}",
             {
-                "products": [product.to_dict(user_id=user_id) for product in products_query.items],
+                "products": [
+                    product.to_dict(user_id=user_id) for product in products_query.items
+                ],
                 "total_pages": products_query.pages,
                 "total_items": products_query.total,
                 "page": page,
@@ -126,7 +137,11 @@ def get_single_product(id):
                 message="Product not found",
             )
 
-        res_data = data_cache(f"products:single:{id}", product.to_dict(all_products=True, user_id=user_id), 60)
+        res_data = data_cache(
+            f"products:single:{id}",
+            product.to_dict(all_products=True, user_id=user_id),
+            60,
+        )
 
         return return_response(
             http_status_codes.HTTP_200_OK,
@@ -153,14 +168,20 @@ def search():
         # Fetch products that match the query across multiple fields, including Specification
         search_term = f"%{query}%"
         # Subquery to find product_ids with matching specifications
-        matching_spec_product_ids = db.session.query(Specification.product_id).filter(
-            or_(
-                Specification.name.ilike(search_term),
-                Specification.description.ilike(search_term)
+        matching_spec_product_ids = (
+            db.session.query(Specification.product_id)
+            .filter(
+                or_(
+                    Specification.name.ilike(search_term),
+                    Specification.description.ilike(search_term),
+                )
             )
-        ).subquery()
+            .subquery()
+        )
 
-        products_query = Products.query.join(Category, Products.category_id == Category.id).filter(
+        products_query = Products.query.join(
+            Category, Products.category_id == Category.id
+        ).filter(
             or_(
                 Products.name.ilike(search_term),
                 Products.description.ilike(search_term),
@@ -295,7 +316,11 @@ def all_categories():
     try:
         categories = Category.query.order_by(Category.name.asc()).all()
 
-        res_data = data_cache(f"products:all_categories", [category.to_dict() for category in categories], 6000)
+        res_data = data_cache(
+            f"products:all_categories",
+            [category.to_dict() for category in categories],
+            6000,
+        )
 
         return return_response(
             http_status_codes.HTTP_200_OK,
@@ -326,17 +351,17 @@ def related_products(id):
             )
         # Query for up to 10 other products in the same category, excluding the current product
         related = (
-            Products.query
-            .filter(
-                Products.category_id == product.category_id,
-                Products.id != product.id
+            Products.query.filter(
+                Products.category_id == product.category_id, Products.id != product.id
             )
             .order_by(Products.created_at.desc())
             .limit(10)
             .all()
         )
 
-        res_data = data_cache(f"products:related:{id}", [p.to_dict() for p in related], 60)
+        res_data = data_cache(
+            f"products:related:{id}", [p.to_dict() for p in related], 60
+        )
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
@@ -367,7 +392,7 @@ def favorite():
                 status=StatusMessage.FAILED,
                 message="Product ID is required",
             )
-        
+
         if not Products.query.filter_by(id=product_id).first():
             return return_response(
                 http_status_codes.HTTP_404_NOT_FOUND,
@@ -375,7 +400,9 @@ def favorite():
                 message="Product not found",
             )
 
-        favorite = Favorite.query.filter_by(user_id=current_user.id, product_id=product_id).first()
+        favorite = Favorite.query.filter_by(
+            user_id=current_user.id, product_id=product_id
+        ).first()
         if favorite:
             db.session.delete(favorite)
             db.session.commit()
@@ -408,8 +435,16 @@ def favorite():
 @jwt_required()
 def get_favorites():
     try:
-        favorites = Favorite.query.filter_by(user_id=current_user.id).order_by(Favorite.created_at.desc()).all()
-        res_data = data_cache(f"products:favorites:{current_user.id}", [f.to_dict() for f in favorites], 60)
+        favorites = (
+            Favorite.query.filter_by(user_id=current_user.id)
+            .order_by(Favorite.created_at.desc())
+            .all()
+        )
+        res_data = data_cache(
+            f"products:favorites:{current_user.id}",
+            [f.to_dict() for f in favorites],
+            60,
+        )
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
