@@ -5,6 +5,7 @@ from src.constants.status_message import StatusMessage
 
 ping_blp = Blueprint("ping_blp", __name__)
 
+
 # Test
 @ping_blp.get("/ping")
 def ping():
