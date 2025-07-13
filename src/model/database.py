@@ -98,11 +98,11 @@ class Products(db.Model):
     @classmethod
     def is_favorited_by(cls, product_id, user_id):
         return db.session.query(
-            exists().where(
+            exists()
+            .where(
                 Favorite.product_id == product_id,
-            ).where(
-                Favorite.user_id == user_id
             )
+            .where(Favorite.user_id == user_id)
         ).scalar()
 
     def to_dict(self, user_id=None, all_products=False):
@@ -124,8 +124,12 @@ class Products(db.Model):
         else:
             returned_dict["favorited"] = False
         if all_products:
-            returned_dict["specifications"] = [spec.to_dict() for spec in self.specification]
-            returned_dict["product_images"] = [image.to_dict() for image in self.product_images]
+            returned_dict["specifications"] = [
+                spec.to_dict() for spec in self.specification
+            ]
+            returned_dict["product_images"] = [
+                image.to_dict() for image in self.product_images
+            ]
         return returned_dict
 
 
@@ -159,6 +163,9 @@ class Cart(db.Model):
     user_id = db.Column(db.String(50), db.ForeignKey("users.id"), nullable=False)
     product_id = db.Column(db.String(50), db.ForeignKey("products.id"), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=0)
+    cart_ref_id = db.Column(db.String(50), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
     product = db.relationship("Products", backref="cart")
 
@@ -191,7 +198,6 @@ class Favorite(db.Model):
             unique=True,
         ),
     )
-
 
     def to_dict(self):
         return {
