@@ -1,7 +1,7 @@
 from celery.schedules import crontab
 
 
-imports = ("workers.jobs.test_jobs",)
+imports = ("src.worker.jobs.test_jobs", "src.worker.tasks.bg_tasks")
 task_result_expires = 30
 timezone = "Africa/Lagos"
 
@@ -11,7 +11,7 @@ result_serializer = "json"
 
 beat_schedule = {
     "test_cron": {
-        "task": "workers.jobs.test_jobs.test_job",
+        "task": "src.worker.jobs.test_jobs.test_job",
         "schedule": crontab(minute="29", hour="11"),
     },
 }
