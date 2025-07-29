@@ -6,14 +6,25 @@ from src.model.database import (
     Cart,
     Transaction,
     ProductPurchased,
+    OrderAddress,
+    Order,
 )
 import uuid
 from src.logger import logger
+import string
+import random
 
 
 # generate cart_ref_id
 def generate_cart_ref_id():
     return str(uuid.uuid4().hex)
+
+
+# formulate order_number
+def generate_order_number():
+    return "".join(
+        random.choice(string.ascii_uppercase + string.digits) for _ in range(10)
+    )
 
 
 def update_product_specifications(product_id, specifications):
@@ -126,7 +137,7 @@ def clear_cart(user_id, cart_ref_id):
         return None
 
 
-def process_cart_payment(user_id, data, cart_ref_id):
+def process_cart_payment(user_id, data, cart_ref_id, order_id):
     carts_items = get_cart_items_by_ref_id(cart_ref_id, user_id)
     trans = save_transaction(data, user_id)
     for cart in carts_items:
@@ -136,6 +147,7 @@ def process_cart_payment(user_id, data, cart_ref_id):
             cart.quantity * cart.product.price,
             trans.id,
             cart.quantity,
+            order_id,
         )
         # reduce_land_plot(cart.property_id, cart.count)
     return
@@ -156,14 +168,62 @@ def save_transaction(data, user_id):
     return new_trans
 
 
-def save_product_purchased(product_id, user_id, amount, transaction_id, quantity):
+def save_product_purchased(
+    product_id, user_id, amount, transaction_id, quantity, order_id
+):
     new_purchase = ProductPurchased(
         product_id=product_id,
         user_id=user_id,
         amount=amount,
         transaction_id=transaction_id,
         quantity=quantity,
+        order_id=order_id,
     )
     db.session.add(new_purchase)
     db.session.commit()
     return new_purchase
+
+
+# get order address order desc by created_at
+def get_order_address(user_id):
+    return (
+        OrderAddress.query.filter_by(user_id=user_id)
+        .order_by(OrderAddress.created_at.desc())
+        .all()
+    )
+
+
+# add order address
+def add_order_address(user_id, address, order_id):
+    try:
+        if OrderAddress.query.filter_by(user_id=user_id, address=address).first():
+            return None
+        order_address = OrderAddress(
+            user_id=user_id, order_id=order_id, address=address
+        )
+        db.session.add(order_address)
+        db.session.commit()
+        return order_address
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(f"Error adding order address: {e}")
+        return None
+
+
+def create_order(user_id, address):
+    try:
+        order_number = generate_order_number()
+        order = Order(user_id=user_id, order_number=order_number)
+        db.session.add(order)
+        db.session.commit()
+        add_order_address(user_id, address, order.id)
+        return order
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(f"Error creating order: {e}")
+        return None
+
+
+# return address using address id
+def get_address(address_id):
+    return OrderAddress.query.filter_by(id=address_id).first()
