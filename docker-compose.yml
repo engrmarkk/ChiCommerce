@@ -26,6 +26,17 @@ services:
   #   env_file:
   #     - .env
 
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    restart: always
+    container_name: ChiCommerce_celery
+    networks:
+      - ChiNetwork
+    env_file:
+      - .env
+
 
 networks:
   ChiNetwork:
