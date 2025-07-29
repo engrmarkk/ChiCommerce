@@ -34,7 +34,13 @@ from src.model.database import (
     Specification,
     Favorite,
 )
-from src.func import finalize_cart_item, get_cart_items_by_ref_id
+from src.func import (
+    finalize_cart_item,
+    get_cart_items_by_ref_id,
+    get_address,
+    create_order,
+    get_order_address,
+)
 from src.utils.util import return_response, data_cache
 from src.constants.status_message import StatusMessage
 from src.constants.env_constant import EXCEPTION_MESSAGE
@@ -575,6 +581,8 @@ def verify_payment():
         data = request.get_json()
         reference = data.get("reference")
         cart_ref_id = data.get("cart_ref_id")
+        address = data.get("address")
+        address_id = data.get("address_id")
         user_id = current_user.id
         if not reference:
             return return_response(
@@ -588,6 +596,23 @@ def verify_payment():
                 status=StatusMessage.FAILED,
                 message="Cart reference ID is required",
             )
+        if not address or not address_id:
+            return return_response(
+                http_status_codes.HTTP_400_BAD_REQUEST,
+                status=StatusMessage.FAILED,
+                message="Address is required",
+            )
+        if address_id:
+            address = get_address(address_id)
+            if not address:
+                return return_response(
+                    http_status_codes.HTTP_400_BAD_REQUEST,
+                    status=StatusMessage.FAILED,
+                    message="Invalid address ID",
+                )
+            address = address.address
+        else:
+            address = address
         if not get_cart_items_by_ref_id(cart_ref_id, user_id):
             return return_response(
                 http_status_codes.HTTP_400_BAD_REQUEST,
@@ -595,12 +620,42 @@ def verify_payment():
                 message="Invalid cart reference ID",
             )
 
-        verify_paystack_transaction.delay(user_id, reference, cart_ref_id)
+        order = create_order(user_id, address)
+
+        order_id = order.id
+
+        verify_paystack_transaction.delay(user_id, reference, cart_ref_id, order_id)
 
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
             message="Payment verification started successfully",
+        )
+    except Exception as e:
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+
+# get ordrer addresses
+@products.get("/order_address")
+@jwt_required()
+def order_address():
+    try:
+        order_address = get_order_address(current_user.id)
+        res_data = data_cache(
+            f"products:order_address:{current_user.id}",
+            [address.to_dict() for address in order_address],
+            60,
+        )
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Order address retrieved successfully",
+            order_address=res_data,
         )
     except Exception as e:
         logger.exception(e)
