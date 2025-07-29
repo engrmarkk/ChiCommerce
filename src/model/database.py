@@ -1,7 +1,6 @@
 # from extensions import db
 from enum import Enum
 from passlib.hash import pbkdf2_sha256 as hasher
-from sqlalchemy import Enum as SQLAlchemyEnum
 from sqlalchemy.ext.hybrid import hybrid_property
 import re
 import datetime
@@ -22,6 +21,18 @@ db = SQLAlchemy()
 
 def random_id():
     return str(uuid.uuid4().hex)
+
+
+class TransactionType(Enum):
+    deposit = "deposit"
+    withdrawal = "withdrawal"
+    payment = "payment"
+    refund = "refund"
+
+
+class TransactionStatus(Enum):
+    success = "success"
+    failed = "failed"
 
 
 # User Model
@@ -93,6 +104,9 @@ class Products(db.Model):
 
     favorites = db.relationship(
         "Favorite", backref="products", cascade="all, delete-orphan"
+    )
+    purchased = db.relationship(
+        "ProductPurchased", backref="products", cascade="all, delete-orphan"
     )
 
     @classmethod
@@ -176,6 +190,8 @@ class Cart(db.Model):
             "product_id": self.product_id,
             "product_name": self.product.name,
             "quantity": self.quantity,
+            "amount": round(self.quantity * self.product.price, 2),
+            "cart_ref_id": self.cart_ref_id,
             "product_image": self.product.image,
             "product_price": self.product.price,
         }
@@ -203,4 +219,71 @@ class Favorite(db.Model):
         return {
             "id": self.id,
             "product": self.products.to_dict(),
+        }
+
+
+# product purchased
+class ProductPurchased(db.Model):
+    __tablename__ = "product_purchased"
+    id = db.Column(db.String(50), primary_key=True, default=random_id)
+    user_id = db.Column(db.String(50), db.ForeignKey("users.id"), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    product_id = db.Column(db.String(50), db.ForeignKey("products.id"), nullable=False)
+    transaction_id = db.Column(
+        db.String(50), db.ForeignKey("transaction.id"), nullable=False
+    )
+    quantity = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "product_id": self.product_id,
+            "amount": self.amount,
+            "quantity": self.quantity,
+            "product_name": self.product.name,
+            "created_at": format_datetime(self.created_at),
+        }
+
+    def __repr__(self):
+        return f"<ProductPurchased {self.id} - {self.product.name}>"
+
+
+class Transaction(db.Model):
+    id = db.Column(db.String(50), primary_key=True, default=random_id)
+    user_id = db.Column(db.String(50), db.ForeignKey("users.id"), nullable=False)
+    amount = db.Column(db.Float, default=0.0)
+    channel = db.Column(db.String(50))
+    transaction_id = db.Column(db.String(50))
+    transaction_type = db.Column(
+        db.Enum(TransactionType), default=TransactionType.payment
+    )
+    transaction_status = db.Column(
+        db.Enum(TransactionStatus), default=TransactionStatus.success
+    )
+    authorization_dict = db.Column(db.JSON)
+    ip_address = db.Column(db.String(50))
+    reference_number = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    product_purchased = db.relationship(
+        "ProductPurchased",
+        backref="transaction",
+    )
+
+    __table_args__ = (
+        Index("ix_transaction_created_at", "created_at"),
+        Index("ix_transaction_user_id", "user_id"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M"),
+            "amount": self.amount,
+            "channel": self.channel,
+            "transaction_type": self.transaction_type.value,
+            "transaction_status": self.transaction_status.value,
+            "reference_number": self.reference_number,
         }
