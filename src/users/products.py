@@ -34,6 +34,7 @@ from src.model.database import (
     Specification,
     Favorite,
 )
+from src.func import finalize_cart_item, get_cart_items_by_ref_id
 from src.utils.util import return_response, data_cache
 from src.constants.status_message import StatusMessage
 from src.constants.env_constant import EXCEPTION_MESSAGE
@@ -471,6 +472,135 @@ def get_trending():
             status=StatusMessage.SUCCESS,
             message="Trending products retrieved successfully",
             **{"trending": res_data},
+        )
+    except Exception as e:
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+
+# add to cart and return cart items with total price
+@products.post("/finalize_cart")
+@jwt_required()
+def finalize_cart():
+    try:
+        data = request.get_json()
+        products = data.get("products", [])
+        if not products:
+            return return_response(
+                http_status_codes.HTTP_400_BAD_REQUEST,
+                status=StatusMessage.FAILED,
+                message="No products provided",
+            )
+
+        cart_items = finalize_cart_item(products, current_user.id)
+
+        # delivery fee
+        delivery_fee = 2000
+        cart_ref_id = cart_items[0]["cart_ref_id"] if cart_items else None
+
+        total_price = sum(item["amount"] for item in cart_items) + delivery_fee
+
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Cart finalized successfully",
+            **{
+                "cart_items": cart_items,
+                "total_price": total_price,
+                "delivery_fee": delivery_fee,
+                "cart_ref_id": cart_ref_id,
+                "user_email": current_user.email,
+            },
+        )
+    except Exception as e:
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+
+# get finalized carts
+@products.get("/get_finalized_carts/<cart_ref_id>")
+@jwt_required()
+def get_finalized_carts(cart_ref_id):
+    try:
+        user_id = current_user.id
+        cart_items = get_cart_items_by_ref_id(cart_ref_id, user_id)
+        # delivery fee
+        delivery_fee = 2000 if cart_items else 0
+        cart_ref_id = cart_items[0]["cart_ref_id"] if cart_items else None
+
+        total_price = sum(item["amount"] for item in cart_items) + delivery_fee
+
+        res_data = data_cache(
+            f"products:finalized_carts:{cart_ref_id}:{user_id}",
+            {
+                "cart_items": cart_items,
+                "total_price": total_price,
+                "delivery_fee": delivery_fee,
+                "cart_ref_id": cart_ref_id,
+                "user_email": current_user.email,
+            },
+            60,
+        )
+
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Cart finalized successfully",
+            **res_data,
+        )
+    except Exception as e:
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+
+# payment verify
+@products.post("/verify_payment")
+@jwt_required()
+def verify_payment():
+    try:
+        from src.worker.tasks.bg_tasks import verify_paystack_transaction
+
+        data = request.get_json()
+        reference = data.get("reference")
+        cart_ref_id = data.get("cart_ref_id")
+        user_id = current_user.id
+        if not reference:
+            return return_response(
+                http_status_codes.HTTP_400_BAD_REQUEST,
+                status=StatusMessage.FAILED,
+                message="Reference is required",
+            )
+        if not cart_ref_id:
+            return return_response(
+                http_status_codes.HTTP_400_BAD_REQUEST,
+                status=StatusMessage.FAILED,
+                message="Cart reference ID is required",
+            )
+        if not get_cart_items_by_ref_id(cart_ref_id, user_id):
+            return return_response(
+                http_status_codes.HTTP_400_BAD_REQUEST,
+                status=StatusMessage.FAILED,
+                message="Invalid cart reference ID",
+            )
+
+        verify_paystack_transaction.delay(user_id, reference, cart_ref_id)
+
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Payment verification started successfully",
         )
     except Exception as e:
         logger.exception(e)
