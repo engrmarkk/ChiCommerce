@@ -229,6 +229,7 @@ class ProductPurchased(db.Model):
     user_id = db.Column(db.String(50), db.ForeignKey("users.id"), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     product_id = db.Column(db.String(50), db.ForeignKey("products.id"), nullable=False)
+    order_id = db.Column(db.String(50), db.ForeignKey("order.id"), nullable=False)
     transaction_id = db.Column(
         db.String(50), db.ForeignKey("transaction.id"), nullable=False
     )
@@ -248,6 +249,39 @@ class ProductPurchased(db.Model):
 
     def __repr__(self):
         return f"<ProductPurchased {self.id} - {self.product.name}>"
+
+
+# Order
+class Order(db.Model):
+    __tablename__ = "order"
+    id = db.Column(db.String(50), primary_key=True, default=random_id)
+    order_number = db.Column(db.String(50), nullable=False)
+    user_id = db.Column(db.String(50), db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "created_at": format_datetime(self.created_at),
+        }
+
+
+class OrderAddress(db.Model):
+    __tablename__ = "order_address"
+    id = db.Column(db.String(50), primary_key=True, default=random_id)
+    user_id = db.Column(db.String(50), db.ForeignKey("users.id"), nullable=False)
+    order_id = db.Column(db.String(50), db.ForeignKey("order.id"), nullable=False)
+    address = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "address": self.address,
+            "created_at": format_datetime(self.created_at),
+        }
 
 
 class Transaction(db.Model):
