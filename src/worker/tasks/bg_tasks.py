@@ -9,11 +9,11 @@ pay_stack = PaystackEndpoints()
 
 
 @shared_task
-def verify_paystack_transaction(user_id, ref, cart_ref_id):
+def verify_paystack_transaction(user_id, ref, cart_ref_id, order_id):
     try:
         res = pay_stack.verify_transaction(ref)
         if res[1] == 200:
-            process_cart_payment(user_id, res[0].get("data"))
+            process_cart_payment(user_id, res[0].get("data"), order_id)
             # user_carts = get_cart_items_by_ref_id(cart_ref_id, user_id)
             clear_cart(user_id, cart_ref_id)
             return True
