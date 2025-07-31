@@ -610,9 +610,10 @@ def verify_payment():
                     status=StatusMessage.FAILED,
                     message="Invalid address ID",
                 )
-            address = address.address
+            address_id = address.id
         else:
-            address = address
+            address = add_order_address(user_id, address)
+            address_id = address.id
         if not get_cart_items_by_ref_id(cart_ref_id, user_id):
             return return_response(
                 http_status_codes.HTTP_400_BAD_REQUEST,
@@ -620,7 +621,7 @@ def verify_payment():
                 message="Invalid cart reference ID",
             )
 
-        order = create_order(user_id, address)
+        order = create_order(user_id, address_id)
 
         order_id = order.id
 
