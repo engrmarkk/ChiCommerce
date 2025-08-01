@@ -147,7 +147,7 @@ def process_cart_payment(user_id, data, cart_ref_id, order_id):
             cart.quantity * cart.product.price,
             trans.id,
             cart.quantity,
-            order_id
+            order_id,
         )
         # reduce_land_plot(cart.property_id, cart.count)
     return
@@ -177,7 +177,7 @@ def save_product_purchased(
         amount=amount,
         transaction_id=transaction_id,
         quantity=quantity,
-        order_id=order_id
+        order_id=order_id,
     )
     db.session.add(new_purchase)
     db.session.commit()
@@ -196,12 +196,12 @@ def get_order_address(user_id):
 # add order address
 def add_order_address(user_id, address):
     try:
-        ex_address = OrderAddress.query.filter_by(user_id=user_id, address=address).first()
+        ex_address = OrderAddress.query.filter_by(
+            user_id=user_id, address=address
+        ).first()
         if ex_address:
             return ex_address
-        order_address = OrderAddress(
-            user_id=user_id, address=address
-        )
+        order_address = OrderAddress(user_id=user_id, address=address)
         db.session.add(order_address)
         db.session.commit()
         return order_address
@@ -214,8 +214,7 @@ def add_order_address(user_id, address):
 def create_order(user_id, address_id):
     try:
         order_number = generate_order_number()
-        order = Order(user_id=user_id, order_number=order_number,
-        address_id=address_id)
+        order = Order(user_id=user_id, order_number=order_number, address_id=address_id)
         db.session.add(order)
         db.session.commit()
         return order
