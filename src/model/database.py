@@ -257,7 +257,9 @@ class Order(db.Model):
     id = db.Column(db.String(50), primary_key=True, default=random_id)
     order_number = db.Column(db.String(50), nullable=False)
     user_id = db.Column(db.String(50), db.ForeignKey("users.id"), nullable=False)
-    address_id = db.Column(db.String(50), db.ForeignKey("order_address.id"), nullable=False)
+    address_id = db.Column(
+        db.String(50), db.ForeignKey("order_address.id"), nullable=False
+    )
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
 
     def to_dict(self):
