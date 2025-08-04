@@ -106,6 +106,16 @@ def get_cart_items_by_ref_id(cart_ref_id, user_id):
         return []
 
 
+def get_cart_items_by_ref_id_instance(cart_ref_id, user_id):
+    try:
+        cart_items = Cart.query.filter_by(
+            cart_ref_id=cart_ref_id, user_id=user_id
+        ).all()
+        return cart_items
+    except Exception as e:
+        logger.exception(f"Error retrieving cart items: {e}")
+        return []
+
 def finalize_cart_item(products, user_id):
     try:
         cart_ref_id = generate_cart_ref_id()
@@ -126,7 +136,7 @@ def finalize_cart_item(products, user_id):
 
 def clear_cart(user_id, cart_ref_id):
     try:
-        cart_items = get_cart_items_by_ref_id(cart_ref_id, user_id)
+        cart_items = get_cart_items_by_ref_id_instance(cart_ref_id, user_id)
         for item in cart_items:
             db.session.delete(item)
         db.session.commit()
@@ -142,11 +152,11 @@ def process_cart_payment(user_id, data, cart_ref_id, order_id):
     trans = save_transaction(data, user_id)
     for cart in carts_items:
         save_product_purchased(
-            cart.product_id,
+            cart.get("product_id"),
             user_id,
-            cart.quantity * cart.product.price,
+            cart.get("quantity") * cart.get("product_price"),
             trans.id,
-            cart.quantity,
+            cart.get("quantity"),
             order_id,
         )
         # reduce_land_plot(cart.property_id, cart.count)
