@@ -40,6 +40,7 @@ from src.func import (
     get_address,
     create_order,
     get_order_address,
+    add_order_address
 )
 from src.utils.util import return_response, data_cache
 from src.constants.status_message import StatusMessage
@@ -596,7 +597,7 @@ def verify_payment():
                 status=StatusMessage.FAILED,
                 message="Cart reference ID is required",
             )
-        if not address or not address_id:
+        if not address and not address_id:
             return return_response(
                 http_status_codes.HTTP_400_BAD_REQUEST,
                 status=StatusMessage.FAILED,
