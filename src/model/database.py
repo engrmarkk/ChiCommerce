@@ -243,12 +243,12 @@ class ProductPurchased(db.Model):
             "product_id": self.product_id,
             "amount": self.amount,
             "quantity": self.quantity,
-            "product_name": self.product.name,
+            "product_name": self.products.name,
             "created_at": format_datetime(self.created_at),
         }
 
     def __repr__(self):
-        return f"<ProductPurchased {self.id} - {self.product.name}>"
+        return f"<ProductPurchased {self.id} - {self.products.name}>"
 
 
 # Order
@@ -261,6 +261,10 @@ class Order(db.Model):
         db.String(50), db.ForeignKey("order_address.id"), nullable=False
     )
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    # product purchased relationship
+    product_purchased = db.relationship(
+        "ProductPurchased", backref="order", lazy="joined"
+    )
 
     def to_dict(self):
         return {
@@ -276,6 +280,8 @@ class OrderAddress(db.Model):
     user_id = db.Column(db.String(50), db.ForeignKey("users.id"), nullable=False)
     address = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    # order relationship
+    orders = db.relationship("Order", backref="order_address", lazy="joined")
 
     def to_dict(self):
         return {
