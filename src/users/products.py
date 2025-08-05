@@ -675,7 +675,7 @@ def order_address():
 def orders():
     try:
         page = int(request.args.get("page", 1))
-        per_page = int(request.args.get("per_page", 30))
+        per_page = int(request.args.get("per_page", 10))
 
         # get orders by created_at desc
         orders = Order.query.filter_by(user_id=current_user.id).order_by(
@@ -688,7 +688,6 @@ def orders():
             {
                 "id": order.id,
                 "order_number": order.order_number,
-                "user_id": order.user_id,
                 "address": order.order_address.address,
                 "created_at": format_datetime(order.created_at),
                 "product_purchased": [
@@ -702,16 +701,25 @@ def orders():
             }
             for order in orders.items
         ]
+
+        order_returned_dict = {
+            "orders": order_list,
+            "total_items": orders.total,
+            "total_pages": orders.pages,
+            "page": orders.page,
+            "per_page": orders.per_page,
+        }
+
         res_data = data_cache(
             f"products:orders:{current_user.id}",
-            order_list,
+            order_returned_dict,
             60,
         )
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
             message="Orders retrieved successfully",
-            orders=res_data,
+            **res_data,
         )
     except Exception as e:
         logger.exception(e)
