@@ -711,7 +711,7 @@ def orders():
         }
 
         res_data = data_cache(
-            f"products:orders:{current_user.id}",
+            f"products:orders:{current_user.id}:{page}:{per_page}",
             order_returned_dict,
             60,
         )
