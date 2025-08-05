@@ -33,6 +33,7 @@ from src.model.database import (
     Cart,
     Specification,
     Favorite,
+    Order
 )
 from src.func import (
     finalize_cart_item,
@@ -42,7 +43,7 @@ from src.func import (
     get_order_address,
     add_order_address
 )
-from src.utils.util import return_response, data_cache
+from src.utils.util import return_response, data_cache, format_datetime
 from src.constants.status_message import StatusMessage
 from src.constants.env_constant import EXCEPTION_MESSAGE
 
@@ -658,6 +659,59 @@ def order_address():
             status=StatusMessage.SUCCESS,
             message="Order address retrieved successfully",
             order_address=res_data,
+        )
+    except Exception as e:
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+
+# get orders
+@products.get("/orders")
+@jwt_required()
+def orders():
+    try:
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 30))
+
+        # get orders by created_at desc
+        orders = Order.query.filter_by(user_id=current_user.id).order_by(
+            Order.created_at.desc()
+        ).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        order_list = [
+            {
+                "id": order.id,
+                "order_number": order.order_number,
+                "user_id": order.user_id,
+                "address": order.order_address.address,
+                "created_at": format_datetime(order.created_at),
+                "product_purchased": [
+                    product_purchased.to_dict()
+                    for product_purchased in order.product_purchased
+                ],
+                "total_amount": sum(
+                    product_purchased.amount
+                    for product_purchased in order.product_purchased
+                ),
+            }
+            for order in orders.items
+        ]
+        res_data = data_cache(
+            f"products:orders:{current_user.id}",
+            order_list,
+            60,
+        )
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Orders retrieved successfully",
+            orders=res_data,
         )
     except Exception as e:
         logger.exception(e)
