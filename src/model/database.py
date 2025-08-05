@@ -245,6 +245,11 @@ class ProductPurchased(db.Model):
             "quantity": self.quantity,
             "product_name": self.products.name,
             "created_at": format_datetime(self.created_at),
+            "product_image": self.products.image,
+            "specifications": [
+                specification.to_dict()
+                for specification in self.products.specification
+            ],
         }
 
     def __repr__(self):
