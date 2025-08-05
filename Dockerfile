@@ -23,8 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # port 5000
-EXPOSE 5000
+EXPOSE 7000
 
 # Command to run the application, use gunicorn
-CMD ["gunicorn", "runserver:app", "--bind", "0.0.0.0:5000", "--workers", "4"]
+CMD ["gunicorn", "runserver:app", "--bind", "0.0.0.0:7000", "--workers", "4"]
 # CMD ["python", "runserver.py", "--host=0.0.0.0", "--port=5000"]
