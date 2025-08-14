@@ -33,7 +33,7 @@ from src.model.database import (
     Cart,
     Specification,
     Favorite,
-    Order
+    Order,
 )
 from src.func import (
     finalize_cart_item,
@@ -41,7 +41,7 @@ from src.func import (
     get_address,
     create_order,
     get_order_address,
-    add_order_address
+    add_order_address,
 )
 from src.utils.util import return_response, data_cache, format_datetime
 from src.constants.status_message import StatusMessage
@@ -678,10 +678,10 @@ def orders():
         per_page = int(request.args.get("per_page", 10))
 
         # get orders by created_at desc
-        orders = Order.query.filter_by(user_id=current_user.id).order_by(
-            Order.created_at.desc()
-        ).paginate(
-            page=page, per_page=per_page, error_out=False
+        orders = (
+            Order.query.filter_by(user_id=current_user.id)
+            .order_by(Order.created_at.desc())
+            .paginate(page=page, per_page=per_page, error_out=False)
         )
 
         order_list = [
