@@ -48,10 +48,14 @@ from src.model.database import (
     ProductImages,
 )
 from src.utils import validate_password
-from src.utils.util import return_response
+from src.utils.util import return_response, data_cache
 from src.constants.env_constant import EXCEPTION_MESSAGE
 from src.constants.status_message import StatusMessage
-from src.func import update_product_specifications, update_product_images
+from src.func import (
+    update_product_specifications,
+    update_product_images,
+    get_all_orders,
+)
 
 # Blueprint setup
 admin = Blueprint("admin", __name__, url_prefix="/admin")
@@ -540,6 +544,42 @@ def all_products():
                 "has_next": has_next,
                 "has_prev": has_prev,
             },
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+
+# get all orders
+@admin.get("/all_orders")
+# @jwt_required()
+# @admin_required()
+def all_orders():
+    try:
+        query = request.args.get("query", "")
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 10))
+
+        res = get_all_orders(query, page, per_page)
+
+        # save to cache
+        data_res = data_cache(
+            f"admin_all_orders:{query}:{page}:{per_page}",
+            res,
+            60,
+        )
+
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Orders retrieved successfully",
+            **data_res,
         )
 
     except Exception as e:
