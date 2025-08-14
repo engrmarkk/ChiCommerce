@@ -54,6 +54,9 @@ class User(UserMixin, db.Model):
     otp_expiration = db.Column(db.DateTime, nullable=True)
     verification_token = db.Column(db.String(255), nullable=True)
 
+    # order relationship
+    orders = db.relationship("Order", backref="user", lazy="joined")
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -247,8 +250,7 @@ class ProductPurchased(db.Model):
             "created_at": format_datetime(self.created_at),
             "product_image": self.products.image,
             "specifications": [
-                specification.to_dict()
-                for specification in self.products.specification
+                specification.to_dict() for specification in self.products.specification
             ],
         }
 
@@ -275,6 +277,15 @@ class Order(db.Model):
         return {
             "id": self.id,
             "user_id": self.user_id,
+            "created_at": format_datetime(self.created_at),
+        }
+
+    def admin_to_dict(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "products": [product.to_dict() for product in self.product_purchased],
+            "user": f"{self.user.last_name} {self.user.first_name}",
             "created_at": format_datetime(self.created_at),
         }
 
