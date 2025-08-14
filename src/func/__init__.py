@@ -116,6 +116,7 @@ def get_cart_items_by_ref_id_instance(cart_ref_id, user_id):
         logger.exception(f"Error retrieving cart items: {e}")
         return []
 
+
 def finalize_cart_item(products, user_id):
     try:
         cart_ref_id = generate_cart_ref_id()
@@ -237,3 +238,21 @@ def create_order(user_id, address_id):
 # return address using address id
 def get_address(address_id):
     return OrderAddress.query.filter_by(id=address_id).first()
+
+
+# get all orders with order by created_at desc and filter with query (urder number)
+def get_all_orders(query, page, per_page):
+    orders_query = Order.query.filter(
+        Order.order_number.ilike(f"%{query}%") if query else True
+    ).paginate(page=page, per_page=per_page, error_out=False)
+
+    resp = {
+        "orders": [order.admin_to_dict() for order in orders_query.items],
+        "total_pages": orders_query.pages,
+        "total_items": orders_query.total,
+        "page": orders_query.page,
+        "per_page": orders_query.per_page,
+        "has_next": orders_query.has_next,
+        "has_prev": orders_query.has_prev,
+    }
+    return resp
