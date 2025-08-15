@@ -35,27 +35,24 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 from src.connections.redis_connection import redis_conn
 from src.constants import http_status_codes
+from src.constants.env_constant import EXCEPTION_MESSAGE
+from src.constants.status_message import StatusMessage
 from src.decorators import admin_required
-from src.extentions.extensions import jwt, mail, cors  # Ensure this import is correct
+from src.func import (
+    update_product_specifications,
+    update_product_images,
+    get_all_orders,
+)
 from src.logger import logger
 from src.model.database import (
     db,
-    User,
     Category,
     Products,
     Cart,
     Specification,
     ProductImages,
 )
-from src.utils import validate_password
 from src.utils.util import return_response, data_cache
-from src.constants.env_constant import EXCEPTION_MESSAGE
-from src.constants.status_message import StatusMessage
-from src.func import (
-    update_product_specifications,
-    update_product_images,
-    get_all_orders,
-)
 
 # Blueprint setup
 admin = Blueprint("admin", __name__, url_prefix="/admin")
