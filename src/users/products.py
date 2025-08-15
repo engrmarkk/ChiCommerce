@@ -1,5 +1,4 @@
 import cloudinary
-import cloudinary.uploader
 import datetime
 import random
 import re
@@ -22,19 +21,9 @@ from flask_jwt_extended import (
 )
 from sqlalchemy import or_
 
-import src.cloudinary_config
 from src.constants import http_status_codes
-from src.logger import logger
-from src.model.database import (
-    db,
-    User,
-    Products,
-    Category,
-    Cart,
-    Specification,
-    Favorite,
-    Order,
-)
+from src.constants.env_constant import EXCEPTION_MESSAGE
+from src.constants.status_message import StatusMessage
 from src.func import (
     finalize_cart_item,
     get_cart_items_by_ref_id,
@@ -43,9 +32,16 @@ from src.func import (
     get_order_address,
     add_order_address,
 )
+from src.logger import logger
+from src.model.database import (
+    db,
+    Products,
+    Category,
+    Specification,
+    Favorite,
+    Order,
+)
 from src.utils.util import return_response, data_cache, format_datetime
-from src.constants.status_message import StatusMessage
-from src.constants.env_constant import EXCEPTION_MESSAGE
 
 # from src.services.mail import send_mail
 
@@ -390,7 +386,7 @@ def related_products(id):
 # favotite and unfavorite a product
 @products.post("/favorite")
 @jwt_required()
-def favorite():
+def favourite():
     try:
         data = request.get_json()
         product_id = data.get("product_id")
