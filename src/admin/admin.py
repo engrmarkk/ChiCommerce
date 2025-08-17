@@ -392,6 +392,8 @@ def update_product(id):
 
         db.session.commit()
 
+        redis_conn.delete(f"products:all_categories")
+
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
@@ -451,11 +453,16 @@ def single_product(id):
 def get_all_categories():
     try:
         categories = Category.query.order_by(Category.name.asc()).all()
+        res_data = data_cache(
+            f"products:all_categories",
+            [category.to_dict() for category in categories],
+            6000,
+        )
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
             message="Categories retrieved successfully",
-            categories=[category.to_dict() for category in categories],
+            **{"categories": res_data},
         )
 
     except Exception as e:
