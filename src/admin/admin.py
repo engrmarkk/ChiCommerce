@@ -495,16 +495,22 @@ def get_product_by_category(category_id):
                 http_status_codes.HTTP_200_OK,
                 status=StatusMessage.SUCCESS,
                 message="No gadgets found in this category",
-                gadgets=[],
+                **{"gadgets": []},
             )
 
         gadgets_list = [gadget.to_dict() for gadget in gadgets]
+
+        res_data = data_cache(
+            f"products:product_by_category:{category_id}",
+            gadgets_list,
+            6000,
+        )
 
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
             message="Gadgets retrieved successfully",
-            gadgets=gadgets_list,
+            **{"gadgets": res_data},
         )
 
     except Exception as e:
@@ -535,11 +541,9 @@ def all_products():
         has_next = products_query.has_next
         has_prev = products_query.has_prev
 
-        return return_response(
-            http_status_codes.HTTP_200_OK,
-            status=StatusMessage.SUCCESS,
-            message="Products retrieved successfully",
-            **{
+        res_data = data_cache(
+            f"admin_products:all_products:{query}:{page}:{per_page}",
+            {
                 "products": [product.to_dict() for product in products_query.items],
                 "total_pages": total_pages,
                 "total_items": products_query.total,
@@ -548,6 +552,14 @@ def all_products():
                 "has_next": has_next,
                 "has_prev": has_prev,
             },
+            6000,
+        )
+
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Products retrieved successfully",
+            **res_data,
         )
 
     except Exception as e:
