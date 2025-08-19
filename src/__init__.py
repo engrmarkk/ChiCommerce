@@ -13,6 +13,7 @@ from src.users.auth import auth
 from src.users.cloud_nary import cloudnary
 from src.users.products import products
 from src.users.ping import ping_blp
+from src.users.webhooks import webhooks_blp
 
 
 def create_app(test_config=None):
@@ -81,6 +82,7 @@ def create_app(test_config=None):
     app.register_blueprint(admin, url_prefix="/api/v1/admin")
     app.register_blueprint(products, url_prefix="/api/v1/products")
     app.register_blueprint(cloudnary, url_prefix="/api/v1/cloudinary")
+    app.register_blueprint(webhooks_blp, url_prefix="/api/v1/webhooks")
     app.register_blueprint(ping_blp)
 
     # JWT user lookup callback
