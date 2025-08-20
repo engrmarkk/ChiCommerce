@@ -732,6 +732,7 @@ def orders():
 def verify_monnify_transaction():
     try:
         from src.integrations.monnify.services import MonnifyServices
+
         monnify = MonnifyServices()
         data = request.get_json()
         transaction_ref = data.get("transaction_ref")
@@ -743,7 +744,7 @@ def verify_monnify_transaction():
             )
         transaction = monnify.get_transaction(transaction_ref)
         logger.info(f"Transaction from monnify: {transaction}")
-        
+
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
