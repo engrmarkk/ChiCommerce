@@ -9,10 +9,12 @@ from flask_jwt_extended import create_access_token
 from io import BytesIO
 from passlib.hash import pbkdf2_sha256 as sha256
 
-from src.constants.env_constant import ACCESS_TOKEN_EXPIRES
+from src.constants.env_constant import ACCESS_TOKEN_EXPIRES, MONNIFY_SECRET_KEY
 from src.logger import logger
 from src.connections.redis_connection import redis_conn
 import json
+import hmac
+import hashlib
 
 
 def return_response(status_code, status=None, message=None, **data):
@@ -83,3 +85,9 @@ def return_host_url(host_url):
     if host_url.startswith("http://"):
         host_url = host_url.replace("http://", "https://")
     return host_url
+
+
+def compute_transaction_hash(request_body: bytes) -> str:
+    return hmac.new(
+        MONNIFY_SECRET_KEY.encode("utf-8"), request_body, hashlib.sha512
+    ).hexdigest()
