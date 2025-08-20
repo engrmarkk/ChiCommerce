@@ -724,3 +724,36 @@ def orders():
             status=StatusMessage.FAILED,
             message=EXCEPTION_MESSAGE,
         )
+
+
+# verify monnify transaction
+@products.post("/verify_monnify_transaction")
+# @jwt_required()
+def verify_monnify_transaction():
+    try:
+        from src.integrations.monnify.services import MonnifyServices
+        monnify = MonnifyServices()
+        data = request.get_json()
+        transaction_ref = data.get("transaction_ref")
+        if not transaction_ref:
+            return return_response(
+                http_status_codes.HTTP_400_BAD_REQUEST,
+                status=StatusMessage.FAILED,
+                message="Transaction reference is required",
+            )
+        transaction = monnify.get_transaction(transaction_ref)
+        logger.info(f"Transaction from monnify: {transaction}")
+        
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Transaction verified successfully",
+            **transaction,
+        )
+    except Exception as e:
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
