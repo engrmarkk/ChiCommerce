@@ -148,9 +148,12 @@ def clear_cart(user_id, cart_ref_id):
         return None
 
 
-def process_cart_payment(user_id, data, cart_ref_id, order_id):
+def process_cart_payment(user_id, data, cart_ref_id, order_id, channel="paystack"):
     carts_items = get_cart_items_by_ref_id(cart_ref_id, user_id)
-    trans = save_transaction(data, user_id)
+    if channel == "monnify":
+        trans = save_monnify_transaction(data, user_id)
+    else:
+        trans = save_transaction(data, user_id)
     for cart in carts_items:
         save_product_purchased(
             cart.get("product_id"),
@@ -178,6 +181,20 @@ def save_transaction(data, user_id):
     db.session.commit()
     return new_trans
 
+
+def save_monnify_transaction(data, user_id):
+    new_trans = Transaction(
+        amount=float(data.get("amountPaid")),
+        user_id=user_id,
+        channel=data.get("paymentMethod"),
+        transaction_id=data.get("paymentReference"),
+        authorization_dict=data.get("authorization", {}),
+        ip_address=data.get("ip_address"),
+        reference_number=data.get("transactionReference"),
+    )
+    db.session.add(new_trans)
+    db.session.commit()
+    return new_trans
 
 def save_product_purchased(
     product_id, user_id, amount, transaction_id, quantity, order_id
