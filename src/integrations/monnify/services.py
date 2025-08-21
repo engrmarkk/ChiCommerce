@@ -11,8 +11,9 @@ class MonnifyServices(MonnifyBase):
                 f"{self.url}/v2/transactions/{transaction_ref}", headers=self.headers
             )
             data = response.json()
+            status_code = response.status_code
             logger.info(f"data@get_transaction: {data}")
-            return data
+            return data, status_code
         except Exception as e:
             logger.exception(e)
-            return {}
+            return {}, 500
