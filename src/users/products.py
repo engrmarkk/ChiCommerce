@@ -574,7 +574,7 @@ def get_finalized_carts(cart_ref_id):
 @jwt_required()
 def verify_payment():
     try:
-        from src.worker.tasks.bg_tasks import verify_paystack_transaction
+        from src.worker.tasks.bg_tasks import verify_paystack_transaction, verify_monnify_transaction
 
         data = request.get_json()
         reference = data.get("reference")
@@ -623,7 +623,8 @@ def verify_payment():
 
         order_id = order.id
 
-        verify_paystack_transaction.delay(user_id, reference, cart_ref_id, order_id)
+        # verify_paystack_transaction.delay(user_id, reference, cart_ref_id, order_id)
+        verify_monnify_transaction.delay(user_id, reference, cart_ref_id, order_id)
 
         return return_response(
             http_status_codes.HTTP_200_OK,
@@ -749,7 +750,7 @@ def verify_monnify_transaction():
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
             message="Transaction verified successfully",
-            **transaction,
+            **{"transaction": transaction[0].get("responseBody")},
         )
     except Exception as e:
         logger.exception(e)
