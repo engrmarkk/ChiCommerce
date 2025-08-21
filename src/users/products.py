@@ -550,6 +550,7 @@ def get_finalized_carts(cart_ref_id):
                 "delivery_fee": delivery_fee,
                 "cart_ref_id": cart_ref_id,
                 "user_email": current_user.email,
+                "user_name": f"{current_user.last_name} {current_user.first_name}",
             },
             60,
         )
