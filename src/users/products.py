@@ -575,7 +575,10 @@ def get_finalized_carts(cart_ref_id):
 @jwt_required()
 def verify_payment():
     try:
-        from src.worker.tasks.bg_tasks import verify_paystack_transaction, verify_monnify_transaction
+        from src.worker.tasks.bg_tasks import (
+            verify_paystack_transaction,
+            verify_monnify_transaction,
+        )
 
         data = request.get_json()
         reference = data.get("reference")
