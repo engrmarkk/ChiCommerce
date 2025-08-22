@@ -196,6 +196,7 @@ def save_monnify_transaction(data, user_id):
     db.session.commit()
     return new_trans
 
+
 def save_product_purchased(
     product_id, user_id, amount, transaction_id, quantity, order_id
 ):
