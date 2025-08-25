@@ -80,6 +80,16 @@ def data_cache(key, data, expire=None):
         return None
 
 
+# delete cache
+def delete_cache(key):
+    try:
+        redis_conn.delete(key)
+        logger.info(f"cache deleted for key: {key}")
+        return True
+    except Exception as e:
+        logger.exception(e)
+        return None
+
 def return_host_url(host_url):
     # if host url starts with http instead of https
     if host_url.startswith("http://"):
