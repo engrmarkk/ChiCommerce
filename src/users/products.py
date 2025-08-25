@@ -41,7 +41,7 @@ from src.model.database import (
     Favorite,
     Order,
 )
-from src.utils.util import return_response, data_cache, format_datetime
+from src.utils.util import return_response, data_cache, format_datetime, delete_cache
 
 # from src.services.mail import send_mail
 
@@ -408,6 +408,7 @@ def favourite():
         favorite = Favorite.query.filter_by(
             user_id=current_user.id, product_id=product_id
         ).first()
+        delete_cache(f"products:favorites:{current_user.id}")
         if favorite:
             db.session.delete(favorite)
             db.session.commit()
