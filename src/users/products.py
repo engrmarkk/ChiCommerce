@@ -42,6 +42,7 @@ from src.model.database import (
     Order,
 )
 from src.utils.util import return_response, data_cache, format_datetime, delete_cache
+from src.decorators import admin_not_required
 
 # from src.services.mail import send_mail
 
@@ -386,6 +387,7 @@ def related_products(id):
 # favotite and unfavorite a product
 @products.post("/favorite")
 @jwt_required()
+@admin_not_required()
 def favourite():
     try:
         data = request.get_json()
@@ -439,6 +441,7 @@ def favourite():
 # get favorited products (desc order)
 @products.get("/get_favorites")
 @jwt_required()
+@admin_not_required()
 def get_favorites():
     try:
         favorites = (
@@ -490,6 +493,7 @@ def get_trending():
 # add to cart and return cart items with total price
 @products.post("/finalize_cart")
 @jwt_required()
+@admin_not_required()
 def finalize_cart():
     try:
         data = request.get_json()
@@ -533,6 +537,7 @@ def finalize_cart():
 # get finalized carts
 @products.get("/get_finalized_carts/<cart_ref_id>")
 @jwt_required()
+@admin_not_required()
 def get_finalized_carts(cart_ref_id):
     try:
         user_id = current_user.id
@@ -574,6 +579,7 @@ def get_finalized_carts(cart_ref_id):
 # payment verify
 @products.post("/verify_payment")
 @jwt_required()
+@admin_not_required()
 def verify_payment():
     try:
         from src.worker.tasks.bg_tasks import (
@@ -648,6 +654,7 @@ def verify_payment():
 # get ordrer addresses
 @products.get("/order_address")
 @jwt_required()
+@admin_not_required()
 def order_address():
     try:
         order_address = get_order_address(current_user.id)
@@ -674,6 +681,7 @@ def order_address():
 # get orders
 @products.get("/orders")
 @jwt_required()
+@admin_not_required()
 def orders():
     try:
         page = int(request.args.get("page", 1))
@@ -734,7 +742,8 @@ def orders():
 
 # verify monnify transaction
 @products.post("/verify_monnify_transaction")
-# @jwt_required()
+@jwt_required()
+@admin_not_required()
 def verify_monnify_transaction():
     try:
         from src.integrations.monnify.services import MonnifyServices
