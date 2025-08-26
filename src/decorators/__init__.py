@@ -30,3 +30,25 @@ def admin_required():
         return wrapped
 
     return decorator
+
+
+def admin_not_required():
+    def decorator(fn):
+        @wraps(fn)
+        def wrapped(*args, **kwargs):
+            try:
+                if current_user.is_admin:
+                    return (
+                        jsonify({"message": "Admin privileges revoked"}),
+                        HTTPStatus.FORBIDDEN,
+                    )
+                return fn(*args, **kwargs)
+            except Exception as e:
+                return (
+                    jsonify({"message": "Authentication failed", "error": str(e)}),
+                    HTTPStatus.UNAUTHORIZED,
+                )
+
+        return wrapped
+
+    return decorator
