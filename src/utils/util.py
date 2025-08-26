@@ -90,6 +90,7 @@ def delete_cache(key):
         logger.exception(e)
         return None
 
+
 def return_host_url(host_url):
     # if host url starts with http instead of https
     if host_url.startswith("http://"):
