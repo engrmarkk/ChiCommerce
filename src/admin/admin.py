@@ -375,13 +375,13 @@ def update_product(id):
         data = request.json
 
         # Update only the fields that are provided in the request, keeping existing values otherwise
-        product.name = data.get("name", product.name)
-        product.price = data.get("price", product.price)
-        product.color = data.get("color", product.color)
-        product.model = data.get("model", product.model)
-        product.image = data.get("image", product.image)
-        product.category_id = data.get("category_id", product.category_id)
-        product.description = data.get("description", product.description)
+        product.name = data.get("name") or product.name
+        product.price = data.get("price") or product.price
+        product.color = data.get("color") or product.color
+        product.model = data.get("model") or product.model
+        product.image = data.get("image") or product.image
+        product.category_id = data.get("category_id") or product.category_id
+        product.description = data.get("description") or product.description
         product.out_of_stock = data.get("out_of_stock", product.out_of_stock)
 
         if data.get("specifications"):
