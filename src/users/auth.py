@@ -348,12 +348,13 @@ def login():
                 message="Invalid email or password",
             )
 
-        if not user.email_verified:
-            return return_response(
-                http_status_codes.HTTP_400_BAD_REQUEST,
-                status=StatusMessage.FAILED,
-                message="Email is not verified",
-            )
+        if not user.is_admin:
+            if not user.email_verified:
+                return return_response(
+                    http_status_codes.HTTP_400_BAD_REQUEST,
+                    status=StatusMessage.FAILED,
+                    message="Email is not verified",
+                )
 
         access_token = create_access_token(identity=user.id, fresh=True)
         refresh_token = create_refresh_token(identity=user.id)
