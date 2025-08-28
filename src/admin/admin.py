@@ -339,9 +339,9 @@ def delete_product(id):
         db.session.delete(product)
         db.session.commit()
 
-        redis_conn.clear_partial_cache(f"products:all:")
-        redis_conn.clear_partial_cache(f"admin_products:single_product:{id}")
-
+        redis_conn.clear_partial_cache(f"products:all")
+        redis_conn.delete(f"admin_products:single_product:{id}")
+    
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
