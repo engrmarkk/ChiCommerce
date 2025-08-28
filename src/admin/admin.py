@@ -348,6 +348,15 @@ def delete_product(id):
             message="Product deleted successfully",
         )
 
+    except IntegrityError as e:
+        db.session.rollback()
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_409_CONFLICT,
+            status=StatusMessage.FAILED,
+            message="Product has active orders and cannot be deleted",
+        )
+
     except Exception as e:
         db.session.rollback()
         logger.exception(e)
