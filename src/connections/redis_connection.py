@@ -28,9 +28,8 @@ class RedisConnection:
 
     # clear partial cache
     def clear_partial_cache(self, key):
-        keys = self.connection.keys(f"{key}*")
-        if keys:
-            self.connection.delete(*keys)
+        for k in self.connection.scan_iter(f"{key}*"):
+            self.connection.delete(k)
 
     def pipeline(self):
         return self.connection.pipeline()
