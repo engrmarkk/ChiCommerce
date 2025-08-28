@@ -53,6 +53,7 @@ from src.model.database import (
     ProductImages,
 )
 from src.utils.util import return_response, data_cache
+import json
 
 # Blueprint setup
 admin = Blueprint("admin", __name__, url_prefix="/admin")
@@ -338,6 +339,8 @@ def delete_product(id):
         db.session.delete(product)
         db.session.commit()
 
+        redis_conn.clear_partial_cache(f"products:all:")
+
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
@@ -392,7 +395,7 @@ def update_product(id):
 
         db.session.commit()
 
-        redis_conn.delete(f"products:all_categories")
+        redis_conn.delete(f"admin_products:single_product:{id}")
 
         return return_response(
             http_status_codes.HTTP_200_OK,
@@ -417,6 +420,15 @@ def update_product(id):
 @admin_required()
 def single_product(id):
     try:
+        key = f"admin_products:single_product:{id}"
+        cached_product = redis_conn.get(key)
+        if cached_product:
+            return return_response(
+                http_status_codes.HTTP_200_OK,
+                status=StatusMessage.SUCCESS,
+                message="Product retrieved successfully",
+                product=json.loads(cached_product)
+            )
         # Query the product by its ID
         product = Products.query.get(id)
 
@@ -427,6 +439,8 @@ def single_product(id):
                 status=StatusMessage.FAILED,
                 message="Product not found",
             )
+
+        redis_conn.set(f"admin_products:single_product:{id}", json.dumps(product.to_dict()), expire=6000)
 
         # Return the product details
         return return_response(
