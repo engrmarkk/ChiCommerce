@@ -340,6 +340,7 @@ def delete_product(id):
         db.session.commit()
 
         redis_conn.clear_partial_cache(f"products:all:")
+        redis_conn.clear_partial_cache(f"admin_products:single_product:{id}")
 
         return return_response(
             http_status_codes.HTTP_200_OK,
