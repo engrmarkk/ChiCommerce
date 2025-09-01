@@ -805,3 +805,55 @@ def get_user(user_id):
             status=StatusMessage.FAILED,
             message=EXCEPTION_MESSAGE,
         )
+
+
+# get purchased product by order id
+@admin.get("/get_order/<order_id>")
+@jwt_required()
+@admin_required()
+def get_order(order_id):
+    try:
+        data_res = data_cache(
+            f"admin_orders:get_order:{order_id}",
+            {},
+            6000,
+        )
+        if data_res:
+            return return_response(
+                http_status_codes.HTTP_200_OK,
+                status=StatusMessage.SUCCESS,
+                message="Order retrieved successfully",
+                **data_res,
+            )
+
+        order = Order.query.get(order_id)
+        if not order:
+            return return_response(
+                http_status_codes.HTTP_404_NOT_FOUND,
+                status=StatusMessage.FAILED,
+                message="Order not found",
+            )
+
+        res_data = order.admin_to_dict(get_all=True)
+
+        data_cache(
+            f"admin_orders:get_order:{order_id}",
+            res_data,
+            6000,
+        )
+
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Order retrieved successfully",
+            **res_data,
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
