@@ -67,14 +67,14 @@ def data_cache(key, data, expire=None):
         if data_cache:
             logger.info(f"data found in redis for key: {key}")
             return json.loads(data_cache)
-        else:
+        elif data:
             if expire:
                 logger.info(f"data not found in redis for key: {key}")
                 redis_conn.set(key, json.dumps(data), expire)
             else:
                 redis_conn.set(key, json.dumps(data))
             logger.info(f"data saved in redis for key: {key}")
-            return data
+        return data
     except Exception as e:
         logger.exception(e)
         return None
