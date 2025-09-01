@@ -295,6 +295,8 @@ def add_product():
         db.session.add(new_product)
         db.session.commit()
 
+        redis_conn.clear_partial_cache(f"admin_products:all_products:")
+
         return return_response(
             http_status_codes.HTTP_201_CREATED,
             status=StatusMessage.SUCCESS,
