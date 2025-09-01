@@ -51,7 +51,9 @@ from src.model.database import (
     Cart,
     Specification,
     ProductImages,
-    User, Order, ProductPurchased
+    User,
+    Order,
+    ProductPurchased,
 )
 from src.utils.util import return_response, data_cache
 import json
@@ -344,7 +346,7 @@ def delete_product(id):
 
         redis_conn.clear_partial_cache(f"admin_products:all_products:")
         redis_conn.delete(f"admin_products:single_product:{id}")
-    
+
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
@@ -441,7 +443,7 @@ def single_product(id):
                 http_status_codes.HTTP_200_OK,
                 status=StatusMessage.SUCCESS,
                 message="Product retrieved successfully",
-                product=json.loads(cached_product)
+                product=json.loads(cached_product),
             )
         # Query the product by its ID
         product = Products.query.get(id)
@@ -454,7 +456,11 @@ def single_product(id):
                 message="Product not found",
             )
 
-        redis_conn.set(f"admin_products:single_product:{id}", json.dumps(product.to_dict(all_products=True)), expire=6000)
+        redis_conn.set(
+            f"admin_products:single_product:{id}",
+            json.dumps(product.to_dict(all_products=True)),
+            expire=6000,
+        )
 
         # Return the product details
         return return_response(
@@ -600,9 +606,11 @@ def all_products():
                 **data_res,
             )
 
-        products_query = Products.query.filter(
-            Products.name.ilike(f"%{query}%")
-        ).order_by(Products.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+        products_query = (
+            Products.query.filter(Products.name.ilike(f"%{query}%"))
+            .order_by(Products.created_at.desc())
+            .paginate(page=page, per_page=per_page, error_out=False)
+        )
 
         total_pages = products_query.pages
         has_next = products_query.has_next
@@ -687,6 +695,7 @@ def all_orders():
             message=EXCEPTION_MESSAGE,
         )
 
+
 # get users
 @admin.get("/get_users")
 @jwt_required()
@@ -710,9 +719,11 @@ def get_users():
                 **res_data,
             )
 
-        users_query = User.query.filter(
-            User.email.ilike(f"%{query}%")
-        ).order_by(User.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+        users_query = (
+            User.query.filter(User.email.ilike(f"%{query}%"))
+            .order_by(User.created_at.desc())
+            .paginate(page=page, per_page=per_page, error_out=False)
+        )
 
         total_pages = users_query.pages
         has_next = users_query.has_next
@@ -776,8 +787,11 @@ def get_user(user_id):
                 message="User not found",
             )
 
-        orders = Order.query.filter_by(user_id=user.id
-                                       ).order_by(Order.created_at.desc()).all()
+        orders = (
+            Order.query.filter_by(user_id=user.id)
+            .order_by(Order.created_at.desc())
+            .all()
+        )
 
         res_data = {
             "user": user.to_dict(),
