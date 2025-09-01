@@ -51,6 +51,7 @@ from src.model.database import (
     Cart,
     Specification,
     ProductImages,
+    User, Order, ProductPurchased
 )
 from src.utils.util import return_response, data_cache
 import json
@@ -408,6 +409,7 @@ def update_product(id):
         db.session.commit()
 
         redis_conn.delete(f"admin_products:single_product:{id}")
+        redis_conn.clear_partial_cache(f"admin_products:all_products:")
 
         return return_response(
             http_status_codes.HTTP_200_OK,
@@ -478,6 +480,19 @@ def single_product(id):
 @admin_required()
 def get_all_categories():
     try:
+        data_res = data_cache(
+            f"products:all_categories",
+            {},
+            6000,
+        )
+        if data_res:
+            return return_response(
+                http_status_codes.HTTP_200_OK,
+                status=StatusMessage.SUCCESS,
+                message="Categories retrieved successfully",
+                **{"categories": data_res},
+            )
+
         categories = Category.query.order_by(Category.name.asc()).all()
         res_data = data_cache(
             f"products:all_categories",
@@ -506,6 +521,19 @@ def get_all_categories():
 @admin_required()
 def get_product_by_category(category_id):
     try:
+        data_res = data_cache(
+            f"products:product_by_category:{category_id}",
+            {},
+            6000,
+        )
+        if data_res:
+            return return_response(
+                http_status_codes.HTTP_200_OK,
+                status=StatusMessage.SUCCESS,
+                message="Products retrieved successfully",
+                **{"gadgets": data_res},
+            )
+
         category = Category.query.get(category_id)
         if not category:
             return return_response(
@@ -559,6 +587,19 @@ def all_products():
         page = int(request.args.get("page", 1))
         per_page = int(request.args.get("per_page", 10))
 
+        data_res = data_cache(
+            f"admin_products:all_products:{query}:{page}:{per_page}",
+            {},
+            6000,
+        )
+        if data_res:
+            return return_response(
+                http_status_codes.HTTP_200_OK,
+                status=StatusMessage.SUCCESS,
+                message="Products retrieved successfully",
+                **data_res,
+            )
+
         products_query = Products.query.filter(
             Products.name.ilike(f"%{query}%")
         ).order_by(Products.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
@@ -608,6 +649,19 @@ def all_orders():
         page = int(request.args.get("page", 1))
         per_page = int(request.args.get("per_page", 10))
 
+        data_res = data_cache(
+            f"admin_all_orders:{query}:{page}:{per_page}",
+            {},
+            60,
+        )
+        if data_res:
+            return return_response(
+                http_status_codes.HTTP_200_OK,
+                status=StatusMessage.SUCCESS,
+                message="Orders retrieved successfully",
+                **data_res,
+            )
+
         res = get_all_orders(query, page, per_page)
 
         # save to cache
@@ -622,6 +676,125 @@ def all_orders():
             status=StatusMessage.SUCCESS,
             message="Orders retrieved successfully",
             **data_res,
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+# get users
+@admin.get("/get_users")
+@jwt_required()
+@admin_required()
+def get_users():
+    try:
+        query = request.args.get("query", "")
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 10))
+
+        res_data = data_cache(
+            f"admin_users:get_users:{query}:{page}:{per_page}",
+            {},
+            6000,
+        )
+        if res_data:
+            return return_response(
+                http_status_codes.HTTP_200_OK,
+                status=StatusMessage.SUCCESS,
+                message="Users retrieved successfully",
+                **res_data,
+            )
+
+        users_query = User.query.filter(
+            User.email.ilike(f"%{query}%")
+        ).order_by(User.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
+        total_pages = users_query.pages
+        has_next = users_query.has_next
+        has_prev = users_query.has_prev
+
+        res_data = data_cache(
+            f"admin_users:get_users:{query}:{page}:{per_page}",
+            {
+                "users": [user.to_dict() for user in users_query.items],
+                "total_pages": total_pages,
+                "total_items": users_query.total,
+                "page": page,
+                "per_page": per_page,
+                "has_next": has_next,
+                "has_prev": has_prev,
+            },
+            6000,
+        )
+
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Users retrieved successfully",
+            **res_data,
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+
+# get one user with the product purchased and orders
+@admin.get("/get_user/<user_id>")
+@jwt_required()
+@admin_required()
+def get_user(user_id):
+    try:
+        data_res = data_cache(
+            f"admin_users:get_user:{user_id}",
+            {},
+            6000,
+        )
+        if data_res:
+            return return_response(
+                http_status_codes.HTTP_200_OK,
+                status=StatusMessage.SUCCESS,
+                message="User retrieved successfully",
+                **data_res,
+            )
+
+        user = User.query.get(user_id)
+        if not user:
+            return return_response(
+                http_status_codes.HTTP_404_NOT_FOUND,
+                status=StatusMessage.FAILED,
+                message="User not found",
+            )
+
+        orders = Order.query.filter_by(user_id=user.id
+                                       ).order_by(Order.created_at.desc()).all()
+
+        res_data = {
+            "user": user.to_dict(),
+            "orders": [order.admin_to_dict() for order in orders],
+        }
+
+        data_cache(
+            f"admin_users:get_user:{user_id}",
+            res_data,
+            6000,
+        )
+
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="User retrieved successfully",
+            **res_data,
         )
 
     except Exception as e:
