@@ -287,14 +287,22 @@ class Order(db.Model):
             "id": self.id,
             "user_id": self.user_id,
             "order_number": self.order_number,
-            "product": self.product_purchased[0].to_dict() if self.product_purchased and not get_all else {},
+            "product": (
+                self.product_purchased[0].to_dict()
+                if self.product_purchased and not get_all
+                else {}
+            ),
             "user": f"{self.user.last_name} {self.user.first_name}",
             "created_at": format_datetime(self.created_at),
         }
         if get_all:
             returned_dict["address"] = self.order_address.to_dict().get("address")
-            returned_dict["products"] = [product.to_dict() for product in self.product_purchased]
-            returned_dict["total_amount"] = sum(item.amount for item in self.product_purchased)
+            returned_dict["products"] = [
+                product.to_dict() for product in self.product_purchased
+            ]
+            returned_dict["total_amount"] = sum(
+                item.amount for item in self.product_purchased
+            )
 
         return returned_dict
 
