@@ -561,7 +561,7 @@ def all_products():
 
         products_query = Products.query.filter(
             Products.name.ilike(f"%{query}%")
-        ).paginate(page=page, per_page=per_page, error_out=False)
+        ).order_by(Products.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
         total_pages = products_query.pages
         has_next = products_query.has_next
