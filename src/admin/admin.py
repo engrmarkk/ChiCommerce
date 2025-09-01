@@ -452,14 +452,14 @@ def single_product(id):
                 message="Product not found",
             )
 
-        redis_conn.set(f"admin_products:single_product:{id}", json.dumps(product.to_dict()), expire=6000)
+        redis_conn.set(f"admin_products:single_product:{id}", json.dumps(product.to_dict(all_products=True)), expire=6000)
 
         # Return the product details
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
             message="Product retrieved successfully",
-            product=product.to_dict(),
+            product=product.to_dict(all_products=True),
         )
 
     except Exception as e:
