@@ -42,6 +42,7 @@ from src.func import (
     update_product_specifications,
     update_product_images,
     get_all_orders,
+    get_sales_stats
 )
 from src.logger import logger
 from src.model.database import (
@@ -861,6 +862,29 @@ def get_order(order_id):
             status=StatusMessage.SUCCESS,
             message="Order retrieved successfully",
             **res_data,
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+
+# dashboard
+@admin.get("/dashboard")
+@jwt_required()
+@admin_required()
+def dashboard():
+    try:
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Dashboard retrieved successfully",
+            **{"data": get_sales_stats()}
         )
 
     except Exception as e:
