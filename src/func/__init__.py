@@ -274,3 +274,21 @@ def get_all_orders(query, page, per_page):
         "has_prev": orders_query.has_prev,
     }
     return resp
+
+
+# get total sales, total orders, total user and recent 10 orders with the prices along
+def get_sales_stats():
+    # get the sums of amount on purchased products
+    total_sales = db.session.query(db.func.sum(ProductPurchased.amount)).scalar()
+    total_orders = Order.query.count()
+    total_users = db.session.query(db.func.count(db.distinct(Order.user_id))).scalar()
+    recent_orders = (
+        Order.query.order_by(Order.created_at.desc()).limit(10).all()
+    )
+    recent_orders_list = [order.admin_to_dict() for order in recent_orders]
+    return {
+        "total_sales": round(total_sales, 2) if total_sales else 0,
+        "total_orders": total_orders,
+        "total_users": total_users or 0,
+        "recent_orders": recent_orders_list,
+    }
