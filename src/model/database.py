@@ -71,6 +71,15 @@ class User(UserMixin, db.Model):
             "email": self.email,
         }
 
+    def to_admin(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "is_admin": self.is_admin,
+        }
+
 
 # Category Model
 class Category(db.Model):
