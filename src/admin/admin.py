@@ -70,6 +70,27 @@ cloudinary.config(
 )
 
 
+# admin details
+@admin.get("/me")
+@jwt_required()
+@admin_required()
+def admin_details():
+    try:
+        return return_response(
+            http_status_codes.HTTP_200_OK,
+            status=StatusMessage.SUCCESS,
+            message="Admin details retrieved successfully",
+            **{"admin": current_user.to_admin()},
+        )
+    except Exception as e:
+        logger.exception(e)
+        return return_response(
+            http_status_codes.HTTP_500_INTERNAL_SERVER_ERROR,
+            status=StatusMessage.FAILED,
+            message=EXCEPTION_MESSAGE,
+        )
+
+
 @admin.post("/add_category")
 @jwt_required()
 @admin_required()
