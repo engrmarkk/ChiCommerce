@@ -42,7 +42,7 @@ from src.func import (
     update_product_specifications,
     update_product_images,
     get_all_orders,
-    get_sales_stats
+    get_sales_stats,
 )
 from src.logger import logger
 from src.model.database import (
@@ -905,7 +905,7 @@ def dashboard():
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
             message="Dashboard retrieved successfully",
-            **{"data": get_sales_stats()}
+            **{"data": get_sales_stats()},
         )
 
     except Exception as e:
