@@ -282,9 +282,7 @@ def get_sales_stats():
     total_sales = db.session.query(db.func.sum(ProductPurchased.amount)).scalar()
     total_orders = Order.query.count()
     total_users = db.session.query(db.func.count(db.distinct(Order.user_id))).scalar()
-    recent_orders = (
-        Order.query.order_by(Order.created_at.desc()).limit(10).all()
-    )
+    recent_orders = Order.query.order_by(Order.created_at.desc()).limit(10).all()
     recent_orders_list = [order.admin_to_dict() for order in recent_orders]
     return {
         "total_sales": round(total_sales, 2) if total_sales else 0,
