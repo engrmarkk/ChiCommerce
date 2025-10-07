@@ -131,6 +131,8 @@ def add_category():
         db.session.add(new_category)
         db.session.commit()
 
+        redis_conn.delete(f"products:all_categories")
+
         return return_response(
             http_status_codes.HTTP_201_CREATED,
             status=StatusMessage.SUCCESS,
@@ -186,6 +188,8 @@ def delete_category(category_id):
         db.session.delete(category)
         db.session.commit()
 
+        redis_conn.delete(f"products:all_categories")
+
         return return_response(
             http_status_codes.HTTP_200_OK,
             status=StatusMessage.SUCCESS,
@@ -238,6 +242,8 @@ def update_category(id):
         category.name = new_cat
         category.image = new_image
         db.session.commit()
+
+        redis_conn.delete(f"products:all_categories")
 
         return return_response(
             http_status_codes.HTTP_200_OK,
