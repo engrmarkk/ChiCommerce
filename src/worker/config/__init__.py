@@ -17,8 +17,8 @@ def make_celery(app=app):
     """
     celery = Celery(
         app.import_name,
-        backend=f"{REDIS_URL}?ssl_cert_reqs=required&health_check_interval=30",
-        broker=f"{REDIS_URL}?ssl_cert_reqs=required&health_check_interval=30",
+        backend=f"{REDIS_URL}?ssl_cert_reqs=required",
+        broker=f"{REDIS_URL}?ssl_cert_reqs=required",
     )
     celery.conf.update(app.config)
     celery.config_from_object(celeryConfig)
