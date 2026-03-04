@@ -6,10 +6,10 @@ timezone = "Africa/Lagos"
 
 broker_pool_limit = None
 broker_transport_options = {
-    'health_check_interval': 30,  # Moves it from the URL to here
+    'health_check_interval': 30,
     'visibility_timeout': 3600,
     'socket_keepalive': True,
-    'socket_timeout': 30,
+    'socket_timeout': 60,
     'retry_on_timeout': True,
 }
 
