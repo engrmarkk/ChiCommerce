@@ -23,4 +23,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Command to run the application, use gunicorn
-CMD ["celery", "-A", "src.worker.config.celery", "worker", "--loglevel=info", "--concurrency=4", "--autoscale=4,2", "-E", "-B"]
+CMD ["celery", "-A", "src.worker.config.celery", "worker", "--loglevel=info", "--autoscale=4,2", "-E", "-B", "--heartbeat-interval=10", "--without-gossip", "--without-mingle"]
