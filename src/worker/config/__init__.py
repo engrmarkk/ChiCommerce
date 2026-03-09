@@ -12,16 +12,19 @@ app = create_app()
 
 
 def make_celery(app=app):
-    """
-    As described in the doc
-    """
     celery = Celery(
         app.import_name,
-        backend=f"{REDIS_URL}?ssl_cert_reqs=required",
-        broker=f"{REDIS_URL}?ssl_cert_reqs=required",
+        backend=f"{REDIS_URL}?ssl_cert_reqs=CERT_REQUIRED",
+        broker=f"{REDIS_URL}?ssl_cert_reqs=CERT_REQUIRED",
     )
     celery.conf.update(app.config)
     celery.config_from_object(celeryConfig)
+
+    # Add explicit connection pool settings
+    celery.conf.broker_pool_limit = 10  # Don't use None — that causes unbounded pools
+    celery.conf.redis_socket_keepalive = True
+    celery.conf.redis_socket_timeout = 30
+    celery.conf.redis_retry_on_timeout = True
 
     class ContextTask(celery.Task):
         def __call__(self, *args, **kwargs):
